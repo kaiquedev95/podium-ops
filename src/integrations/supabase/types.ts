@@ -14,7 +14,359 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agendamentos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_hora: string
+          id: string
+          observacoes: string | null
+          servico_resumo: string | null
+          status: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_hora: string
+          id?: string
+          observacoes?: string | null
+          servico_resumo?: string | null
+          status?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_hora?: string
+          id?: string
+          observacoes?: string | null
+          servico_resumo?: string | null
+          status?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          cpf_cnpj: string | null
+          created_at: string
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      despesas: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          data?: string
+          descricao: string
+          id?: string
+          valor: number
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      logs_atendimento: {
+        Row: {
+          canal: string
+          cliente_id: string
+          created_at: string
+          data_combinada: string | null
+          data_hora: string
+          descricao: string
+          id: string
+          ordem_servico_id: string | null
+          usuario_responsavel: string
+        }
+        Insert: {
+          canal?: string
+          cliente_id: string
+          created_at?: string
+          data_combinada?: string | null
+          data_hora?: string
+          descricao: string
+          id?: string
+          ordem_servico_id?: string | null
+          usuario_responsavel?: string
+        }
+        Update: {
+          canal?: string
+          cliente_id?: string
+          created_at?: string
+          data_combinada?: string | null
+          data_hora?: string
+          descricao?: string
+          id?: string
+          ordem_servico_id?: string | null
+          usuario_responsavel?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_atendimento_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logs_atendimento_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_servico: {
+        Row: {
+          cliente_id: string
+          como_chegou: string | null
+          created_at: string
+          data_entrada: string
+          id: string
+          o_que_foi_feito: string | null
+          pecas_texto: string | null
+          status: string
+          total: number
+          veiculo_id: string | null
+          vencimento: string | null
+        }
+        Insert: {
+          cliente_id: string
+          como_chegou?: string | null
+          created_at?: string
+          data_entrada?: string
+          id?: string
+          o_que_foi_feito?: string | null
+          pecas_texto?: string | null
+          status?: string
+          total?: number
+          veiculo_id?: string | null
+          vencimento?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          como_chegou?: string | null
+          created_at?: string
+          data_entrada?: string
+          id?: string
+          o_que_foi_feito?: string | null
+          pecas_texto?: string | null
+          status?: string
+          total?: number
+          veiculo_id?: string | null
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_servico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          created_at: string
+          data_pagamento: string
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          ordem_servico_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento?: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          ordem_servico_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          ordem_servico_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pendencias: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_prevista: string
+          descricao: string
+          id: string
+          log_atendimento_id: string | null
+          ordem_servico_id: string | null
+          responsavel: string
+          status: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_prevista: string
+          descricao: string
+          id?: string
+          log_atendimento_id?: string | null
+          ordem_servico_id?: string | null
+          responsavel?: string
+          status?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_prevista?: string
+          descricao?: string
+          id?: string
+          log_atendimento_id?: string | null
+          ordem_servico_id?: string | null
+          responsavel?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendencias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendencias_log_atendimento_id_fkey"
+            columns: ["log_atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "logs_atendimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendencias_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      veiculos: {
+        Row: {
+          ano: string | null
+          cliente_id: string
+          created_at: string
+          id: string
+          marca: string | null
+          modelo: string | null
+          motor: string | null
+          observacoes: string | null
+          placa: string | null
+        }
+        Insert: {
+          ano?: string | null
+          cliente_id: string
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          motor?: string | null
+          observacoes?: string | null
+          placa?: string | null
+        }
+        Update: {
+          ano?: string | null
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          motor?: string | null
+          observacoes?: string | null
+          placa?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
