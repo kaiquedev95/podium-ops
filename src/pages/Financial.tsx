@@ -1,34 +1,28 @@
 import { useState } from "react";
-import { DollarSign, Search, Filter, ChevronRight, CreditCard } from "lucide-react";
+import { DollarSign, Search, CreditCard, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-interface Receivable {
-  os: string;
-  client: string;
-  vehicle: string;
-  total: number;
-  paid: number;
-  balance: number;
-  dueDate: string;
-  status: "aberto" | "parcial" | "atrasado";
-  daysOverdue: number;
-}
-
-const mockReceivables: Receivable[] = [
-  { os: "OS-0042", client: "Roberto Ferreira", vehicle: "Gol G7 2020", total: 1850, paid: 0, balance: 1850, dueDate: "15/02/2026", status: "aberto", daysOverdue: 0 },
-  { os: "OS-0041", client: "Luciana Mendes", vehicle: "Tracker 2021", total: 3200, paid: 2000, balance: 1200, dueDate: "10/02/2026", status: "parcial", daysOverdue: 0 },
-  { os: "OS-0038", client: "Roberto Ferreira", vehicle: "Gol G7 2020", total: 2800, paid: 450, balance: 2350, dueDate: "28/01/2026", status: "atrasado", daysOverdue: 13 },
-  { os: "OS-0035", client: "Luciana Mendes", vehicle: "Tracker 2021", total: 1800, paid: 600, balance: 1200, dueDate: "20/01/2026", status: "atrasado", daysOverdue: 21 },
-  { os: "OS-0033", client: "Ana Paula Lima", vehicle: "Celta 2015", total: 950, paid: 100, balance: 850, dueDate: "02/02/2026", status: "atrasado", daysOverdue: 8 },
-];
-
-const totalBalance = mockReceivables.reduce((sum, r) => sum + r.balance, 0);
-const totalOverdue = mockReceivables.filter((r) => r.status === "atrasado").reduce((sum, r) => sum + r.balance, 0);
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useOrdensServico, useMutatePagamento, usePagamentos, calcFinStatus } from "@/hooks/useSupabase";
+import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const Financial = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const { data: ordensRaw } = useOrdensServico();
+  const { create: createPag } = useMutatePagamento();
+  const [payDialog, setPayDialog] = useState<{ osId: string; saldo: number } | null>(null);
+  const [payVal, setPayVal] = useState("");
+  const [payForma, setPayForma] = useState("PIX");
+  const [historyOS, setHistoryOS] = useState<string | null>(null);
+
+  const ordens = (ordensRaw || []).map((os) => {
+    const totalPago = (os.pagamentos || []).reduce((s: number, p: any) => s + Number(p.valor), 0);
+    const saldo = Number(os.total) - totalPago;
+    const finStatus = calcFinStatus(Number(os.total), totalPago, os.vencimento);
+    return { ...os, totalPago, saldo, finStatus };
+  }).filter((os) => os.saldo > 0);
 
   const filters = [
     { label: "Todos", value: "todos" },
@@ -37,20 +31,36 @@ const Financial = () => {
     { label: "Atrasado", value: "atrasado" },
   ];
 
-  const filtered = mockReceivables.filter((r) => {
-    const matchSearch = r.client.toLowerCase().includes(search.toLowerCase()) || r.os.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "todos" || r.status === statusFilter;
+  const filtered = ordens.filter((r) => {
+    const matchSearch = ((r as any).clientes?.nome || "").toLowerCase().includes(search.toLowerCase()) || r.id.includes(search);
+    const matchStatus = statusFilter === "todos" || r.finStatus === statusFilter;
     return matchSearch && matchStatus;
   });
 
+  const totalBalance = ordens.reduce((s, r) => s + r.saldo, 0);
+  const totalOverdue = ordens.filter((r) => r.finStatus === "atrasado").reduce((s, r) => s + r.saldo, 0);
+
+  const handlePay = () => {
+    if (!payDialog || !payVal) return;
+    createPag.mutate(
+      { ordem_servico_id: payDialog.osId, valor: Number(payVal), forma_pagamento: payForma },
+      {
+        onSuccess: () => { toast.success("Pagamento registrado!"); setPayDialog(null); setPayVal(""); },
+        onError: (e) => toast.error(e.message),
+      }
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold">Contas a Receber</h1>
-        <p className="text-sm text-muted-foreground">Controle de pagamentos e clientes devendo</p>
+      <div className="flex items-center gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">Contas a Receber</h1>
+          <p className="text-sm text-muted-foreground">Controle de pagamentos e clientes devendo</p>
+        </div>
+        <Link to="/"><Button variant="ghost" size="sm">Início</Button></Link>
       </div>
 
-      {/* Summary */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-5">
           <p className="stat-label">Total a Receber</p>
@@ -61,12 +71,11 @@ const Financial = () => {
           <p className="mt-2 text-2xl font-bold text-destructive">R$ {totalOverdue.toLocaleString("pt-BR")}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
-          <p className="stat-label">Clientes Devendo</p>
-          <p className="mt-2 stat-value">{new Set(mockReceivables.map((r) => r.client)).size}</p>
+          <p className="stat-label">OS com saldo</p>
+          <p className="mt-2 stat-value">{ordens.length}</p>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -74,52 +83,83 @@ const Financial = () => {
         </div>
         <div className="flex gap-2">
           {filters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                statusFilter === f.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
+            <button key={f.value} onClick={() => setStatusFilter(f.value)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${statusFilter === f.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
               {f.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Receivables List */}
       <div className="space-y-3">
         {filtered.map((r) => (
-          <div key={r.os} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 card-hover cursor-pointer">
+          <div key={r.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 card-hover">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10">
               <DollarSign className="h-5 w-5 text-destructive" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-primary">{r.os}</span>
-                <span className="text-sm font-medium">{r.client}</span>
+                <span className="text-xs font-bold text-primary">{r.id.slice(0, 8)}</span>
+                <span className="text-sm font-medium">{(r as any).clientes?.nome}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {r.vehicle} • Vencimento: {r.dueDate}
-                {r.daysOverdue > 0 && <span className="text-destructive"> • {r.daysOverdue} dias atrasado</span>}
+                {(r as any).veiculos?.modelo} • {r.vencimento ? `Venc: ${r.vencimento}` : "Sem vencimento"}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm font-bold text-destructive">R$ {r.balance.toLocaleString("pt-BR")}</p>
-              <p className="text-[10px] text-muted-foreground">
-                de R$ {r.total.toLocaleString("pt-BR")} (pago: R$ {r.paid.toLocaleString("pt-BR")})
-              </p>
+              <p className="text-sm font-bold text-destructive">R$ {r.saldo.toLocaleString("pt-BR")}</p>
+              <p className="text-[10px] text-muted-foreground">de R$ {Number(r.total).toLocaleString("pt-BR")} (pago: R$ {r.totalPago.toLocaleString("pt-BR")})</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" className="gap-1 text-xs">
-                <CreditCard className="h-3 w-3" /> Registrar Pgto
+              <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setPayDialog({ osId: r.id, saldo: r.saldo })}>
+                <CreditCard className="h-3 w-3" /> Pagar
               </Button>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setHistoryOS(r.id)}>Histórico</Button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Pay Dialog */}
+      <Dialog open={!!payDialog} onOpenChange={() => setPayDialog(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Registrar Pagamento</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Saldo: R$ {payDialog?.saldo.toLocaleString("pt-BR")}</p>
+            <Input type="number" placeholder="Valor" value={payVal} onChange={(e) => setPayVal(e.target.value)} />
+            <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={payForma} onChange={(e) => setPayForma(e.target.value)}>
+              <option>PIX</option><option>Dinheiro</option><option>Cartão Débito</option><option>Cartão Crédito</option>
+            </select>
+            <Button onClick={handlePay} disabled={createPag.isPending} className="w-full">{createPag.isPending ? "Salvando..." : "Registrar"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* History Dialog */}
+      {historyOS && <PaymentHistory osId={historyOS} onClose={() => setHistoryOS(null)} />}
     </div>
+  );
+};
+
+const PaymentHistory = ({ osId, onClose }: { osId: string; onClose: () => void }) => {
+  const { data: pagamentos } = usePagamentos(osId);
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Histórico de Pagamentos</DialogTitle></DialogHeader>
+        <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
+          {(pagamentos || []).map((p) => (
+            <div key={p.id} className="py-3 flex justify-between">
+              <div>
+                <p className="text-sm font-medium">R$ {Number(p.valor).toLocaleString("pt-BR")}</p>
+                <p className="text-xs text-muted-foreground">{new Date(p.data_pagamento).toLocaleDateString("pt-BR")} — {p.forma_pagamento}</p>
+              </div>
+              {p.observacoes && <p className="text-xs text-muted-foreground">{p.observacoes}</p>}
+            </div>
+          ))}
+          {(!pagamentos || pagamentos.length === 0) && <p className="py-4 text-sm text-muted-foreground">Nenhum pagamento</p>}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
