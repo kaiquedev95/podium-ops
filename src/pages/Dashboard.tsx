@@ -1,66 +1,80 @@
-import {
-  CalendarDays,
-  ClipboardList,
-  DollarSign,
-  AlertCircle,
-  TrendingUp,
-  Users,
-  Car,
-  Clock,
-  ChevronRight,
-} from "lucide-react";
+import { CalendarDays, ClipboardList, DollarSign, AlertCircle, TrendingUp, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-// Mock data
-const stats = [
-  { label: "Agendamentos Hoje", value: "5", icon: CalendarDays, color: "text-primary" },
-  { label: "OS em Andamento", value: "8", icon: ClipboardList, color: "text-[hsl(var(--chart-3))]" },
-  { label: "Faturamento (Mês)", value: "R$ 42.350", icon: TrendingUp, color: "text-[hsl(var(--success))]" },
-  { label: "A Receber", value: "R$ 8.720", icon: DollarSign, color: "text-destructive" },
-];
-
-const todaySchedule = [
-  { time: "08:00", client: "João Silva", vehicle: "Civic 2019", service: "Troca de óleo + filtros", status: "confirmado" },
-  { time: "09:30", client: "Maria Santos", vehicle: "Onix 2021", service: "Revisão completa", status: "confirmado" },
-  { time: "11:00", client: "Carlos Oliveira", vehicle: "Hilux 2020", service: "Freios dianteiros", status: "aguardando" },
-  { time: "14:00", client: "Ana Costa", vehicle: "HB20 2022", service: "Diagnóstico eletrônico", status: "confirmado" },
-  { time: "16:00", client: "Pedro Almeida", vehicle: "Corolla 2018", service: "Suspensão", status: "aguardando" },
-];
-
-const activeOS = [
-  { id: "OS-0042", client: "Roberto Ferreira", vehicle: "Gol G7 2020", status: "em andamento", total: "R$ 1.850" },
-  { id: "OS-0041", client: "Luciana Mendes", vehicle: "Tracker 2021", status: "aguardando peça", total: "R$ 3.200" },
-  { id: "OS-0040", client: "Felipe Ramos", vehicle: "Compass 2022", status: "em andamento", total: "R$ 2.100" },
-];
-
-const pendencies = [
-  { client: "João Silva", description: "Retornar para alinhamento", date: "Hoje", type: "atrasada" },
-  { client: "Maria Santos", description: "Pagamento restante R$ 500", date: "Hoje", type: "hoje" },
-  { client: "Carlos Oliveira", description: "Trazer carro para revisão", date: "12/02", type: "proxima" },
-];
-
-const debtors = [
-  { client: "Roberto Ferreira", total: "R$ 2.350", os: "OS-0038", days: 15 },
-  { client: "Luciana Mendes", total: "R$ 1.200", os: "OS-0035", days: 22 },
-  { client: "Ana Paula Lima", total: "R$ 850", os: "OS-0033", days: 8 },
-];
+import { useAgendamentos, useOrdensServico, usePendencias, calcFinStatus } from "@/hooks/useSupabase";
+import { Button } from "@/components/ui/button";
+import { useMutatePendencia, useMutatePagamento } from "@/hooks/useSupabase";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
 
 const Dashboard = () => {
+  const { data: agendamentos } = useAgendamentos();
+  const { data: ordensServico } = useOrdensServico();
+  const { data: pendencias } = usePendencias();
+  const { update: updatePendencia } = useMutatePendencia();
+  const { create: createPagamento } = useMutatePagamento();
+
+  const [payDialog, setPayDialog] = useState<{ osId: string; saldo: number } | null>(null);
+  const [payVal, setPayVal] = useState("");
+  const [payForma, setPayForma] = useState("PIX");
+
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  const todayAgend = agendamentos?.filter((a) => a.data_hora.startsWith(today)) || [];
+
+  const activeOS = ordensServico?.filter((os) => os.status === "em andamento" || os.status === "aguardando peça") || [];
+
+  // Compute receivables from OS
+  const osWithBalance = (ordensServico || []).map((os) => {
+    const totalPago = (os.pagamentos || []).reduce((s: number, p: any) => s + Number(p.valor), 0);
+    const saldo = Number(os.total) - totalPago;
+    const finStatus = calcFinStatus(Number(os.total), totalPago, os.vencimento);
+    return { ...os, totalPago, saldo, finStatus };
+  });
+
+  const totalReceivable = osWithBalance.reduce((s, os) => s + Math.max(0, os.saldo), 0);
+  const topDebtors = osWithBalance.filter((os) => os.saldo > 0).sort((a, b) => b.saldo - a.saldo).slice(0, 5);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const pendHoje = pendencias?.filter((p) => p.status === "aberta" && p.data_prevista === todayStr) || [];
+  const pendAtrasadas = pendencias?.filter((p) => p.status === "aberta" && p.data_prevista < todayStr) || [];
+  const pendProximas = pendencias?.filter((p) => p.status === "aberta" && p.data_prevista > todayStr) || [];
+
+  const stats = [
+    { label: "Agendamentos Hoje", value: String(todayAgend.length), icon: CalendarDays, color: "text-primary" },
+    { label: "OS em Andamento", value: String(activeOS.length), icon: ClipboardList, color: "text-[hsl(var(--chart-3))]" },
+    { label: "Faturamento (Mês)", value: `R$ ${osWithBalance.filter(os => os.finStatus === 'pago').reduce((s, os) => s + Number(os.total), 0).toLocaleString("pt-BR")}`, icon: TrendingUp, color: "text-[hsl(var(--success))]" },
+    { label: "A Receber", value: `R$ ${totalReceivable.toLocaleString("pt-BR")}`, icon: DollarSign, color: "text-destructive" },
+  ];
+
+  const handleConcluir = (id: string) => {
+    updatePendencia.mutate({ id, status: "concluida" }, { onSuccess: () => toast.success("Pendência concluída!") });
+  };
+
+  const handlePay = () => {
+    if (!payDialog || !payVal) return;
+    createPagamento.mutate(
+      { ordem_servico_id: payDialog.osId, valor: Number(payVal), forma_pagamento: payForma },
+      {
+        onSuccess: () => { toast.success("Pagamento registrado!"); setPayDialog(null); setPayVal(""); },
+        onError: (e) => toast.error("Erro: " + e.message),
+      }
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral da oficina — 10 de fevereiro, 2026</p>
+        <p className="text-sm text-muted-foreground">Visão geral da oficina — {format(new Date(), "dd/MM/yyyy")}</p>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-5 card-hover">
-            <div className="flex items-center justify-between">
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
-            </div>
+            <stat.icon className={`h-5 w-5 ${stat.color}`} />
             <p className="mt-3 stat-value">{stat.value}</p>
             <p className="mt-1 stat-label">{stat.label}</p>
           </div>
@@ -68,27 +82,24 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Today's Schedule */}
+        {/* Today Schedule */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-semibold">Agendamentos de Hoje</h2>
-            <Link to="/agendamentos" className="flex items-center gap-1 text-xs text-primary hover:underline">
-              Ver todos <ChevronRight className="h-3 w-3" />
-            </Link>
+            <Link to="/agendamentos" className="flex items-center gap-1 text-xs text-primary hover:underline">Ver todos <ChevronRight className="h-3 w-3" /></Link>
           </div>
           <div className="divide-y divide-border">
-            {todaySchedule.map((item, i) => (
-              <div key={i} className="flex items-center gap-4 px-5 py-3">
+            {todayAgend.length === 0 && <p className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum agendamento hoje</p>}
+            {todayAgend.map((a) => (
+              <div key={a.id} className="flex items-center gap-4 px-5 py-3">
                 <div className="flex h-10 w-16 items-center justify-center rounded-md bg-secondary text-xs font-bold text-secondary-foreground">
-                  {item.time}
+                  {format(new Date(a.data_hora), "HH:mm")}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.client}</p>
-                  <p className="text-xs text-muted-foreground truncate">{item.vehicle} — {item.service}</p>
+                  <p className="text-sm font-medium truncate">{(a as any).clientes?.nome}</p>
+                  <p className="text-xs text-muted-foreground truncate">{(a as any).veiculos?.modelo} — {a.servico_resumo}</p>
                 </div>
-                <span className={item.status === "confirmado" ? "badge-paid" : "badge-open"}>
-                  {item.status}
-                </span>
+                <span className={a.status === "confirmado" ? "badge-paid" : "badge-open"}>{a.status}</span>
               </div>
             ))}
           </div>
@@ -97,24 +108,22 @@ const Dashboard = () => {
         {/* Pendencies */}
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="font-semibold">Pendências</h2>
-            <Link to="/pendencias" className="flex items-center gap-1 text-xs text-primary hover:underline">
-              Ver todas <ChevronRight className="h-3 w-3" />
-            </Link>
+            <h2 className="font-semibold">Pendências ({pendAtrasadas.length + pendHoje.length})</h2>
+            <Link to="/pendencias" className="flex items-center gap-1 text-xs text-primary hover:underline">Ver todas <ChevronRight className="h-3 w-3" /></Link>
           </div>
           <div className="divide-y divide-border">
-            {pendencies.map((item, i) => (
-              <div key={i} className="px-5 py-3">
+            {[...pendAtrasadas, ...pendHoje].slice(0, 5).map((p) => (
+              <div key={p.id} className="px-5 py-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{item.client}</p>
-                  <span className={
-                    item.type === "atrasada" ? "badge-overdue" :
-                    item.type === "hoje" ? "badge-open" : "badge-pending"
-                  }>
-                    {item.date}
-                  </span>
+                  <p className="text-sm font-medium">{(p as any).clientes?.nome}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={p.data_prevista < todayStr ? "badge-overdue" : "badge-open"}>{p.data_prevista}</span>
+                    <button onClick={() => handleConcluir(p.id)} className="rounded p-1 text-muted-foreground hover:text-[hsl(var(--success))]">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{p.descricao}</p>
               </div>
             ))}
           </div>
@@ -126,52 +135,68 @@ const Dashboard = () => {
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-semibold">OS em Andamento</h2>
-            <Link to="/ordens-servico" className="flex items-center gap-1 text-xs text-primary hover:underline">
-              Ver todas <ChevronRight className="h-3 w-3" />
-            </Link>
+            <Link to="/ordens-servico" className="flex items-center gap-1 text-xs text-primary hover:underline">Ver todas <ChevronRight className="h-3 w-3" /></Link>
           </div>
           <div className="divide-y divide-border">
-            {activeOS.map((os) => (
+            {activeOS.slice(0, 5).map((os) => (
               <div key={os.id} className="flex items-center justify-between px-5 py-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-primary">{os.id}</span>
-                    <span className="text-sm font-medium">{os.client}</span>
+                    <span className="text-xs font-bold text-primary">{os.id.slice(0, 8)}</span>
+                    <span className="text-sm font-medium">{(os as any).clientes?.nome}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">{os.vehicle}</p>
+                  <p className="text-xs text-muted-foreground">{(os as any).veiculos?.modelo}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold">{os.total}</p>
-                  <span className={os.status === "aguardando peça" ? "badge-open" : "badge-paid"}>
-                    {os.status}
-                  </span>
+                  <p className="text-sm font-semibold">R$ {Number(os.total).toLocaleString("pt-BR")}</p>
+                  <span className={os.status === "aguardando peça" ? "badge-open" : "badge-paid"}>{os.status}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Debtors */}
+        {/* Top Debtors */}
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="font-semibold">Clientes Devendo</h2>
-            <Link to="/financeiro" className="flex items-center gap-1 text-xs text-primary hover:underline">
-              Ver todos <ChevronRight className="h-3 w-3" />
-            </Link>
+            <h2 className="font-semibold">Maiores Saldos</h2>
+            <Link to="/financeiro" className="flex items-center gap-1 text-xs text-primary hover:underline">Ver todos <ChevronRight className="h-3 w-3" /></Link>
           </div>
           <div className="divide-y divide-border">
-            {debtors.map((d, i) => (
-              <div key={i} className="flex items-center justify-between px-5 py-3">
+            {topDebtors.map((d) => (
+              <div key={d.id} className="flex items-center justify-between px-5 py-3">
                 <div>
-                  <p className="text-sm font-medium">{d.client}</p>
-                  <p className="text-xs text-muted-foreground">{d.os} — {d.days} dias</p>
+                  <p className="text-sm font-medium">{(d as any).clientes?.nome}</p>
+                  <p className="text-xs text-muted-foreground">{(d as any).veiculos?.modelo}</p>
                 </div>
-                <span className="text-sm font-bold text-destructive">{d.total}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-destructive">R$ {d.saldo.toLocaleString("pt-BR")}</span>
+                  <Button size="sm" variant="outline" className="text-xs" onClick={() => setPayDialog({ osId: d.id, saldo: d.saldo })}>
+                    Pagar
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Pay Dialog */}
+      <Dialog open={!!payDialog} onOpenChange={() => setPayDialog(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Registrar Pagamento</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Saldo: R$ {payDialog?.saldo.toLocaleString("pt-BR")}</p>
+            <Input type="number" placeholder="Valor" value={payVal} onChange={(e) => setPayVal(e.target.value)} />
+            <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={payForma} onChange={(e) => setPayForma(e.target.value)}>
+              <option>PIX</option><option>Dinheiro</option><option>Cartão Débito</option><option>Cartão Crédito</option>
+            </select>
+            <Button onClick={handlePay} disabled={createPagamento.isPending} className="w-full">
+              {createPagamento.isPending ? "Salvando..." : "Registrar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
