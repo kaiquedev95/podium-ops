@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { DollarSign, Search, CreditCard, ArrowLeft } from "lucide-react";
+import { DollarSign, Search, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useOrdensServico, useMutatePagamento, usePagamentos, calcFinStatus } from "@/hooks/useSupabase";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { MoneyInput, parseBRL } from "@/components/MoneyInput";
 
 const Financial = () => {
   const [search, setSearch] = useState("");
@@ -43,7 +44,7 @@ const Financial = () => {
   const handlePay = () => {
     if (!payDialog || !payVal) return;
     createPag.mutate(
-      { ordem_servico_id: payDialog.osId, valor: Number(payVal), forma_pagamento: payForma },
+      { ordem_servico_id: payDialog.osId, valor: parseBRL(payVal), forma_pagamento: payForma },
       {
         onSuccess: () => { toast.success("Pagamento registrado!"); setPayDialog(null); setPayVal(""); },
         onError: (e) => toast.error(e.message),
@@ -119,13 +120,12 @@ const Financial = () => {
         ))}
       </div>
 
-      {/* Pay Dialog */}
       <Dialog open={!!payDialog} onOpenChange={() => setPayDialog(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Registrar Pagamento</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Saldo: R$ {payDialog?.saldo.toLocaleString("pt-BR")}</p>
-            <Input type="number" placeholder="Valor" value={payVal} onChange={(e) => setPayVal(e.target.value)} />
+            <MoneyInput value={payVal} onChange={setPayVal} />
             <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={payForma} onChange={(e) => setPayForma(e.target.value)}>
               <option>PIX</option><option>Dinheiro</option><option>Cartão Débito</option><option>Cartão Crédito</option>
             </select>
@@ -134,7 +134,6 @@ const Financial = () => {
         </DialogContent>
       </Dialog>
 
-      {/* History Dialog */}
       {historyOS && <PaymentHistory osId={historyOS} onClose={() => setHistoryOS(null)} />}
     </div>
   );

@@ -6,7 +6,7 @@ import { useMutatePendencia, useMutatePagamento } from "@/hooks/useSupabase";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { MoneyInput, parseBRL } from "@/components/MoneyInput";
 import { format } from "date-fns";
 
 const Dashboard = () => {
@@ -21,12 +21,9 @@ const Dashboard = () => {
   const [payForma, setPayForma] = useState("PIX");
 
   const today = format(new Date(), "yyyy-MM-dd");
-
   const todayAgend = agendamentos?.filter((a) => a.data_hora.startsWith(today)) || [];
-
   const activeOS = ordensServico?.filter((os) => os.status === "em andamento" || os.status === "aguardando peça") || [];
 
-  // Compute receivables from OS
   const osWithBalance = (ordensServico || []).map((os) => {
     const totalPago = (os.pagamentos || []).reduce((s: number, p: any) => s + Number(p.valor), 0);
     const saldo = Number(os.total) - totalPago;
@@ -40,7 +37,6 @@ const Dashboard = () => {
   const todayStr = new Date().toISOString().split("T")[0];
   const pendHoje = pendencias?.filter((p) => p.status === "aberta" && p.data_prevista === todayStr) || [];
   const pendAtrasadas = pendencias?.filter((p) => p.status === "aberta" && p.data_prevista < todayStr) || [];
-  const pendProximas = pendencias?.filter((p) => p.status === "aberta" && p.data_prevista > todayStr) || [];
 
   const stats = [
     { label: "Agendamentos Hoje", value: String(todayAgend.length), icon: CalendarDays, color: "text-primary" },
@@ -56,7 +52,7 @@ const Dashboard = () => {
   const handlePay = () => {
     if (!payDialog || !payVal) return;
     createPagamento.mutate(
-      { ordem_servico_id: payDialog.osId, valor: Number(payVal), forma_pagamento: payForma },
+      { ordem_servico_id: payDialog.osId, valor: parseBRL(payVal), forma_pagamento: payForma },
       {
         onSuccess: () => { toast.success("Pagamento registrado!"); setPayDialog(null); setPayVal(""); },
         onError: (e) => toast.error("Erro: " + e.message),
@@ -82,7 +78,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Today Schedule */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-semibold">Agendamentos de Hoje</h2>
@@ -105,7 +100,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Pendencies */}
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-semibold">Pendências ({pendAtrasadas.length + pendHoje.length})</h2>
@@ -131,7 +125,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Active OS */}
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-semibold">OS em Andamento</h2>
@@ -156,7 +149,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Top Debtors */}
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-semibold">Maiores Saldos</h2>
@@ -181,13 +173,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Pay Dialog */}
       <Dialog open={!!payDialog} onOpenChange={() => setPayDialog(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Registrar Pagamento</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Saldo: R$ {payDialog?.saldo.toLocaleString("pt-BR")}</p>
-            <Input type="number" placeholder="Valor" value={payVal} onChange={(e) => setPayVal(e.target.value)} />
+            <MoneyInput value={payVal} onChange={setPayVal} />
             <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={payForma} onChange={(e) => setPayForma(e.target.value)}>
               <option>PIX</option><option>Dinheiro</option><option>Cartão Débito</option><option>Cartão Crédito</option>
             </select>

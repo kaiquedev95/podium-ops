@@ -214,7 +214,28 @@ export const useMutatePagamento = () => {
       qc.invalidateQueries({ queryKey: ["ordens_servico"] });
     },
   });
-  return { create };
+  const update = useMutation({
+    mutationFn: async ({ id, ...p }: TablesUpdate<"pagamentos"> & { id: string }) => {
+      const { data, error } = await supabase.from("pagamentos").update(p).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      qc.invalidateQueries({ queryKey: ["ordens_servico"] });
+    },
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pagamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      qc.invalidateQueries({ queryKey: ["ordens_servico"] });
+    },
+  });
+  return { create, update, remove };
 };
 
 // ─── Logs de Atendimento ───
@@ -246,7 +267,26 @@ export const useMutateLog = () => {
       qc.invalidateQueries({ queryKey: ["pendencias"] });
     },
   });
-  return { create };
+  const update = useMutation({
+    mutationFn: async ({ id, ...log }: TablesUpdate<"logs_atendimento"> & { id: string }) => {
+      const { data, error } = await supabase.from("logs_atendimento").update(log).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["logs_atendimento"] });
+    },
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("logs_atendimento").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["logs_atendimento"] });
+    },
+  });
+  return { create, update, remove };
 };
 
 // ─── Pendencias ───
@@ -265,6 +305,14 @@ export const usePendencias = () =>
 
 export const useMutatePendencia = () => {
   const qc = useQueryClient();
+  const create = useMutation({
+    mutationFn: async (p: TablesInsert<"pendencias">) => {
+      const { data, error } = await supabase.from("pendencias").insert(p).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pendencias"] }),
+  });
   const update = useMutation({
     mutationFn: async ({ id, ...p }: TablesUpdate<"pendencias"> & { id: string }) => {
       const { data, error } = await supabase.from("pendencias").update(p).eq("id", id).select().single();
@@ -273,7 +321,14 @@ export const useMutatePendencia = () => {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pendencias"] }),
   });
-  return { update };
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pendencias").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pendencias"] }),
+  });
+  return { create, update, remove };
 };
 
 // ─── Despesas ───
@@ -297,7 +352,22 @@ export const useMutateDespesa = () => {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["despesas"] }),
   });
-  return { create };
+  const update = useMutation({
+    mutationFn: async ({ id, ...d }: TablesUpdate<"despesas"> & { id: string }) => {
+      const { data, error } = await supabase.from("despesas").update(d).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["despesas"] }),
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("despesas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["despesas"] }),
+  });
+  return { create, update, remove };
 };
 
 // ─── Helpers ───
