@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Phone, MessageCircle, ChevronRight, Car, ArrowLeft, Trash2 } from "lucide-react";
+import { Search, Plus, Phone, ChevronRight, Car, ArrowLeft, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -65,7 +65,7 @@ const Clients = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" onClick={(e) => { e.stopPropagation(); openEdit(client); }}><ChevronRight className="h-4 w-4" /></button>
+              <button className="rounded-lg p-2 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); openEdit(client); }}><Pencil className="h-4 w-4" /></button>
               <button className="rounded-lg p-2 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(client.id); }}><Trash2 className="h-4 w-4" /></button>
             </div>
           </div>
@@ -95,39 +95,71 @@ const Clients = () => {
 const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
   const { data: veiculos } = useVeiculos(id);
   const { data: logs } = useLogsAtendimento(id);
-  const { create: createVeiculo } = useMutateVeiculo();
-  const { create: createLog } = useMutateLog();
+  const { create: createVeiculo, update: updateVeiculo, remove: removeVeiculo } = useMutateVeiculo();
+  const { create: createLog, update: updateLog, remove: removeLog } = useMutateLog();
   const { data: clientes } = useClientes();
   const cliente = clientes?.find((c) => c.id === id);
 
   const [showVForm, setShowVForm] = useState(false);
+  const [editVId, setEditVId] = useState<string | null>(null);
   const [vForm, setVForm] = useState({ placa: "", marca: "", modelo: "", ano: "", motor: "" });
   const [showLogForm, setShowLogForm] = useState(false);
+  const [editLogId, setEditLogId] = useState<string | null>(null);
   const [logForm, setLogForm] = useState({ canal: "WhatsApp", descricao: "", data_combinada: "", usuario_responsavel: "Admin" });
 
+  const openNewV = () => { setVForm({ placa: "", marca: "", modelo: "", ano: "", motor: "" }); setEditVId(null); setShowVForm(true); };
+  const openEditV = (v: any) => { setVForm({ placa: v.placa || "", marca: v.marca || "", modelo: v.modelo || "", ano: v.ano || "", motor: v.motor || "" }); setEditVId(v.id); setShowVForm(true); };
+
+  const openNewLog = () => { setLogForm({ canal: "WhatsApp", descricao: "", data_combinada: "", usuario_responsavel: "Admin" }); setEditLogId(null); setShowLogForm(true); };
+  const openEditLog = (l: any) => { setLogForm({ canal: l.canal, descricao: l.descricao, data_combinada: l.data_combinada || "", usuario_responsavel: l.usuario_responsavel }); setEditLogId(l.id); setShowLogForm(true); };
+
   const handleSaveVeiculo = () => {
-    createVeiculo.mutate({ ...vForm, cliente_id: id }, {
-      onSuccess: () => { toast.success("Veículo criado!"); setShowVForm(false); setVForm({ placa: "", marca: "", modelo: "", ano: "", motor: "" }); },
-      onError: (e) => toast.error(e.message),
-    });
+    if (editVId) {
+      updateVeiculo.mutate({ id: editVId, ...vForm }, {
+        onSuccess: () => { toast.success("Veículo atualizado!"); setShowVForm(false); },
+        onError: (e) => toast.error(e.message),
+      });
+    } else {
+      createVeiculo.mutate({ ...vForm, cliente_id: id }, {
+        onSuccess: () => { toast.success("Veículo criado!"); setShowVForm(false); setVForm({ placa: "", marca: "", modelo: "", ano: "", motor: "" }); },
+        onError: (e) => toast.error(e.message),
+      });
+    }
+  };
+
+  const handleDeleteV = (vId: string) => {
+    if (!confirm("Excluir veículo?")) return;
+    removeVeiculo.mutate(vId, { onSuccess: () => toast.success("Excluído!"), onError: (e) => toast.error(e.message) });
   };
 
   const handleSaveLog = () => {
     if (!logForm.descricao.trim()) { toast.error("Descrição obrigatória"); return; }
-    createLog.mutate({
-      cliente_id: id,
-      canal: logForm.canal,
-      descricao: logForm.descricao,
-      data_combinada: logForm.data_combinada || null,
-      usuario_responsavel: logForm.usuario_responsavel,
-    }, {
-      onSuccess: () => {
-        toast.success(logForm.data_combinada ? "Log criado + pendência gerada!" : "Log criado!");
-        setShowLogForm(false);
-        setLogForm({ canal: "WhatsApp", descricao: "", data_combinada: "", usuario_responsavel: "Admin" });
-      },
-      onError: (e) => toast.error(e.message),
-    });
+    if (editLogId) {
+      updateLog.mutate({ id: editLogId, canal: logForm.canal, descricao: logForm.descricao, data_combinada: logForm.data_combinada || null, usuario_responsavel: logForm.usuario_responsavel }, {
+        onSuccess: () => { toast.success("Log atualizado!"); setShowLogForm(false); },
+        onError: (e) => toast.error(e.message),
+      });
+    } else {
+      createLog.mutate({
+        cliente_id: id,
+        canal: logForm.canal,
+        descricao: logForm.descricao,
+        data_combinada: logForm.data_combinada || null,
+        usuario_responsavel: logForm.usuario_responsavel,
+      }, {
+        onSuccess: () => {
+          toast.success(logForm.data_combinada ? "Log criado + pendência gerada!" : "Log criado!");
+          setShowLogForm(false);
+          setLogForm({ canal: "WhatsApp", descricao: "", data_combinada: "", usuario_responsavel: "Admin" });
+        },
+        onError: (e) => toast.error(e.message),
+      });
+    }
+  };
+
+  const handleDeleteLog = (logId: string) => {
+    if (!confirm("Excluir log?")) return;
+    removeLog.mutate(logId, { onSuccess: () => toast.success("Log excluído!"), onError: (e) => toast.error(e.message) });
   };
 
   return (
@@ -148,16 +180,18 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       <div className="rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-semibold">Veículos</h2>
-          <Button size="sm" onClick={() => setShowVForm(true)}><Plus className="h-3 w-3 mr-1" /> Veículo</Button>
+          <Button size="sm" onClick={openNewV}><Plus className="h-3 w-3 mr-1" /> Veículo</Button>
         </div>
         <div className="divide-y divide-border">
           {veiculos?.map((v) => (
             <div key={v.id} className="px-5 py-3 flex items-center gap-3">
               <Car className="h-4 w-4 text-primary" />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium">{v.marca} {v.modelo} {v.ano}</p>
                 <p className="text-xs text-muted-foreground">Placa: {v.placa || "—"} • Motor: {v.motor || "—"}</p>
               </div>
+              <button onClick={() => openEditV(v)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-3 w-3" /></button>
+              <button onClick={() => handleDeleteV(v.id)} className="rounded p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
             </div>
           ))}
           {(!veiculos || veiculos.length === 0) && <p className="px-5 py-4 text-sm text-muted-foreground">Nenhum veículo</p>}
@@ -168,7 +202,7 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       <div className="rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-semibold">Log de Atendimento</h2>
-          <Button size="sm" onClick={() => setShowLogForm(true)}><Plus className="h-3 w-3 mr-1" /> Log</Button>
+          <Button size="sm" onClick={openNewLog}><Plus className="h-3 w-3 mr-1" /> Log</Button>
         </div>
         <div className="divide-y divide-border">
           {logs?.map((l) => (
@@ -178,6 +212,10 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
                 <span className="rounded bg-secondary px-1.5 py-0.5">{l.canal}</span>
                 <span>por {l.usuario_responsavel}</span>
                 {l.data_combinada && <span className="badge-open">Combinado: {l.data_combinada}</span>}
+                <div className="ml-auto flex gap-1">
+                  <button onClick={() => openEditLog(l)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-3 w-3" /></button>
+                  <button onClick={() => handleDeleteLog(l.id)} className="rounded p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                </div>
               </div>
               <p className="mt-1 text-sm">{l.descricao}</p>
             </div>
@@ -189,15 +227,15 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       {/* Vehicle Dialog */}
       <Dialog open={showVForm} onOpenChange={setShowVForm}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo Veículo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editVId ? "Editar" : "Novo"} Veículo</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Placa" value={vForm.placa} onChange={(e) => setVForm({ ...vForm, placa: e.target.value })} />
             <Input placeholder="Marca" value={vForm.marca} onChange={(e) => setVForm({ ...vForm, marca: e.target.value })} />
             <Input placeholder="Modelo" value={vForm.modelo} onChange={(e) => setVForm({ ...vForm, modelo: e.target.value })} />
             <Input placeholder="Ano" value={vForm.ano} onChange={(e) => setVForm({ ...vForm, ano: e.target.value })} />
             <Input placeholder="Motor" value={vForm.motor} onChange={(e) => setVForm({ ...vForm, motor: e.target.value })} />
-            <Button onClick={handleSaveVeiculo} disabled={createVeiculo.isPending} className="w-full">
-              {createVeiculo.isPending ? "Salvando..." : "Salvar Veículo"}
+            <Button onClick={handleSaveVeiculo} disabled={createVeiculo.isPending || updateVeiculo.isPending} className="w-full">
+              {(createVeiculo.isPending || updateVeiculo.isPending) ? "Salvando..." : "Salvar Veículo"}
             </Button>
           </div>
         </DialogContent>
@@ -206,7 +244,7 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       {/* Log Dialog */}
       <Dialog open={showLogForm} onOpenChange={setShowLogForm}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo Log de Atendimento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editLogId ? "Editar" : "Novo"} Log de Atendimento</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={logForm.canal} onChange={(e) => setLogForm({ ...logForm, canal: e.target.value })}>
               <option>WhatsApp</option><option>Telefone</option><option>Presencial</option><option>Outro</option>
@@ -215,8 +253,8 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
             <textarea className="w-full rounded-lg border border-border bg-card p-2 text-sm min-h-[80px]" placeholder="Descrição *" value={logForm.descricao} onChange={(e) => setLogForm({ ...logForm, descricao: e.target.value })} />
             <Input type="date" placeholder="Data combinada (gera pendência)" value={logForm.data_combinada} onChange={(e) => setLogForm({ ...logForm, data_combinada: e.target.value })} />
             <p className="text-xs text-muted-foreground">Se preencher data combinada, uma pendência será criada automaticamente.</p>
-            <Button onClick={handleSaveLog} disabled={createLog.isPending} className="w-full">
-              {createLog.isPending ? "Salvando..." : "Salvar Log"}
+            <Button onClick={handleSaveLog} disabled={createLog.isPending || updateLog.isPending} className="w-full">
+              {(createLog.isPending || updateLog.isPending) ? "Salvando..." : "Salvar Log"}
             </Button>
           </div>
         </DialogContent>

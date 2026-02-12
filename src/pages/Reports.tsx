@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { Download, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { Download, TrendingUp, TrendingDown, DollarSign, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useOrdensServico, useDespesas } from "@/hooks/useSupabase";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useOrdensServico, useDespesas, useMutateDespesa } from "@/hooks/useSupabase";
+import { MoneyInput, parseBRL } from "@/components/MoneyInput";
+import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -9,12 +13,15 @@ import autoTable from "jspdf-autotable";
 const Reports = () => {
   const { data: ordensRaw } = useOrdensServico();
   const { data: despesas } = useDespesas();
+  const { create: createDespesa, update: updateDespesa, remove: removeDespesa } = useMutateDespesa();
   const [mesFilter, setMesFilter] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  const [showDespForm, setShowDespForm] = useState(false);
+  const [editDespId, setEditDespId] = useState<string | null>(null);
+  const [despForm, setDespForm] = useState({ descricao: "", valor: "", categoria: "", data: "" });
 
-  // Compute monthly data
   const ordens = (ordensRaw || []).map((os) => {
     const totalPago = (os.pagamentos || []).reduce((s: number, p: any) => s + Number(p.valor), 0);
     return { ...os, totalPago };
@@ -34,6 +41,39 @@ const Reports = () => {
     ...(despesas || []).map((d) => d.data.slice(0, 7)),
     mesFilter,
   ])).sort().reverse();
+
+  const openNewDesp = () => {
+    const today = new Date().toISOString().split("T")[0];
+    setDespForm({ descricao: "", valor: "", categoria: "", data: today });
+    setEditDespId(null);
+    setShowDespForm(true);
+  };
+  const openEditDesp = (d: any) => {
+    setDespForm({ descricao: d.descricao, valor: Number(d.valor).toFixed(2).replace(".", ","), categoria: d.categoria || "", data: d.data });
+    setEditDespId(d.id);
+    setShowDespForm(true);
+  };
+
+  const handleSaveDesp = () => {
+    if (!despForm.descricao.trim()) { toast.error("Descrição obrigatória"); return; }
+    const payload = { descricao: despForm.descricao, valor: parseBRL(despForm.valor), categoria: despForm.categoria || null, data: despForm.data || undefined };
+    if (editDespId) {
+      updateDespesa.mutate({ id: editDespId, ...payload }, {
+        onSuccess: () => { toast.success("Despesa atualizada!"); setShowDespForm(false); },
+        onError: (e) => toast.error(e.message),
+      });
+    } else {
+      createDespesa.mutate(payload as any, {
+        onSuccess: () => { toast.success("Despesa criada!"); setShowDespForm(false); },
+        onError: (e) => toast.error(e.message),
+      });
+    }
+  };
+
+  const handleDeleteDesp = (id: string) => {
+    if (!confirm("Excluir despesa?")) return;
+    removeDespesa.mutate(id, { onSuccess: () => toast.success("Excluída!"), onError: (e) => toast.error(e.message) });
+  };
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -104,7 +144,10 @@ const Reports = () => {
 
       {/* Despesas Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="border-b border-border px-5 py-4"><h2 className="font-semibold">Despesas do Mês</h2></div>
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="font-semibold">Despesas do Mês</h2>
+          <Button size="sm" className="gap-1" onClick={openNewDesp}><Plus className="h-3 w-3" /> Nova Despesa</Button>
+        </div>
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
@@ -112,6 +155,7 @@ const Reports = () => {
               <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Categoria</th>
               <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Descrição</th>
               <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Valor</th>
+              <th className="px-5 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -121,12 +165,33 @@ const Reports = () => {
                 <td className="px-5 py-3 text-sm">{d.categoria || "—"}</td>
                 <td className="px-5 py-3 text-sm">{d.descricao}</td>
                 <td className="px-5 py-3 text-right text-sm font-semibold text-destructive">R$ {Number(d.valor).toLocaleString("pt-BR")}</td>
+                <td className="px-5 py-3">
+                  <div className="flex gap-1 justify-end">
+                    <button onClick={() => openEditDesp(d)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-3 w-3" /></button>
+                    <button onClick={() => handleDeleteDesp(d.id)} className="rounded p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                </td>
               </tr>
             ))}
-            {mesDespesas.length === 0 && <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma despesa neste mês</td></tr>}
+            {mesDespesas.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma despesa neste mês</td></tr>}
           </tbody>
         </table>
       </div>
+
+      <Dialog open={showDespForm} onOpenChange={setShowDespForm}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editDespId ? "Editar" : "Nova"} Despesa</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Descrição *" value={despForm.descricao} onChange={(e) => setDespForm({ ...despForm, descricao: e.target.value })} />
+            <MoneyInput value={despForm.valor} onChange={(v) => setDespForm({ ...despForm, valor: v })} />
+            <Input placeholder="Categoria" value={despForm.categoria} onChange={(e) => setDespForm({ ...despForm, categoria: e.target.value })} />
+            <Input type="date" value={despForm.data} onChange={(e) => setDespForm({ ...despForm, data: e.target.value })} />
+            <Button onClick={handleSaveDesp} disabled={createDespesa.isPending || updateDespesa.isPending} className="w-full">
+              {(createDespesa.isPending || updateDespesa.isPending) ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

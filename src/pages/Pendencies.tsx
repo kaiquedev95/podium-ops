@@ -1,12 +1,19 @@
-import { AlertCircle, CheckCircle2, Clock, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, CheckCircle2, Clock, RotateCcw, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { usePendencias, useMutatePendencia } from "@/hooks/useSupabase";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { usePendencias, useMutatePendencia, useClientes } from "@/hooks/useSupabase";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 const Pendencies = () => {
   const { data: pendencias, isLoading } = usePendencias();
-  const { update } = useMutatePendencia();
+  const { data: clientes } = useClientes();
+  const { create, update } = useMutatePendencia();
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ descricao: "", data_prevista: "", responsavel: "Admin", cliente_id: "" });
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -24,6 +31,24 @@ const Pendencies = () => {
     update.mutate({ id, status: "aberta" }, { onSuccess: () => toast.success("Reaberta!") });
   };
 
+  const openNew = () => { setForm({ descricao: "", data_prevista: "", responsavel: "Admin", cliente_id: "" }); setEditId(null); setShowForm(true); };
+  const openEdit = (p: any) => { setForm({ descricao: p.descricao, data_prevista: p.data_prevista, responsavel: p.responsavel, cliente_id: p.cliente_id }); setEditId(p.id); setShowForm(true); };
+
+  const handleSave = () => {
+    if (!form.descricao.trim() || !form.data_prevista || !form.cliente_id) { toast.error("Preencha descrição, data e cliente"); return; }
+    if (editId) {
+      update.mutate({ id: editId, descricao: form.descricao, data_prevista: form.data_prevista, responsavel: form.responsavel, cliente_id: form.cliente_id }, {
+        onSuccess: () => { toast.success("Pendência atualizada!"); setShowForm(false); },
+        onError: (e) => toast.error(e.message),
+      });
+    } else {
+      create.mutate({ descricao: form.descricao, data_prevista: form.data_prevista, responsavel: form.responsavel, cliente_id: form.cliente_id }, {
+        onSuccess: () => { toast.success("Pendência criada!"); setShowForm(false); },
+        onError: (e) => toast.error(e.message),
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -31,7 +56,10 @@ const Pendencies = () => {
           <h1 className="text-2xl font-bold">Pendências</h1>
           <p className="text-sm text-muted-foreground">Combinados, retornos e compromissos com clientes</p>
         </div>
-        <Link to="/"><Button variant="ghost" size="sm">Início</Button></Link>
+        <div className="flex gap-2">
+          <Link to="/"><Button variant="ghost" size="sm">Início</Button></Link>
+          <Button className="gap-2" onClick={openNew}><Plus className="h-4 w-4" /> Nova Pendência</Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
@@ -64,7 +92,8 @@ const Pendencies = () => {
                   </span>
                   <p className="mt-1 text-[10px] text-muted-foreground">Resp: {p.responsavel}</p>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 flex gap-1">
+                  <button onClick={() => openEdit(p)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
                   {p.status === "aberta" ? (
                     <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleConcluir(p.id)}>
                       <CheckCircle2 className="h-3 w-3" /> Concluir
@@ -80,6 +109,24 @@ const Pendencies = () => {
           </div>
         </div>
       ))}
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editId ? "Editar" : "Nova"} Pendência</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={form.cliente_id} onChange={(e) => setForm({ ...form, cliente_id: e.target.value })}>
+              <option value="">Selecione o cliente *</option>
+              {(clientes || []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+            <textarea className="w-full rounded-lg border border-border bg-card p-2 text-sm min-h-[80px]" placeholder="Descrição *" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+            <Input type="date" placeholder="Data prevista *" value={form.data_prevista} onChange={(e) => setForm({ ...form, data_prevista: e.target.value })} />
+            <Input placeholder="Responsável" value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} />
+            <Button onClick={handleSave} disabled={create.isPending || update.isPending} className="w-full">
+              {(create.isPending || update.isPending) ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
