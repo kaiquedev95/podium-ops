@@ -176,9 +176,15 @@ export type Database = {
           como_chegou: string | null
           created_at: string
           data_entrada: string
+          data_saida: string | null
+          desconto: number
+          diagnostico: string | null
           id: string
+          km_entrada: number | null
           o_que_foi_feito: string | null
+          observacoes: string | null
           pecas_texto: string | null
+          reclamacao_cliente: string | null
           status: string
           total: number
           veiculo_id: string | null
@@ -189,9 +195,15 @@ export type Database = {
           como_chegou?: string | null
           created_at?: string
           data_entrada?: string
+          data_saida?: string | null
+          desconto?: number
+          diagnostico?: string | null
           id?: string
+          km_entrada?: number | null
           o_que_foi_feito?: string | null
+          observacoes?: string | null
           pecas_texto?: string | null
+          reclamacao_cliente?: string | null
           status?: string
           total?: number
           veiculo_id?: string | null
@@ -202,9 +214,15 @@ export type Database = {
           como_chegou?: string | null
           created_at?: string
           data_entrada?: string
+          data_saida?: string | null
+          desconto?: number
+          diagnostico?: string | null
           id?: string
+          km_entrada?: number | null
           o_que_foi_feito?: string | null
+          observacoes?: string | null
           pecas_texto?: string | null
+          reclamacao_cliente?: string | null
           status?: string
           total?: number
           veiculo_id?: string | null
@@ -265,6 +283,38 @@ export type Database = {
           },
         ]
       }
+      pecas_os: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          ordem_servico_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          ordem_servico_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem_servico_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pecas_os_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pendencias: {
         Row: {
           cliente_id: string
@@ -316,6 +366,38 @@ export type Database = {
           },
           {
             foreignKeyName: "pendencias_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      servicos_os: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          ordem_servico_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          ordem_servico_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem_servico_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_os_ordem_servico_id_fkey"
             columns: ["ordem_servico_id"]
             isOneToOne: false
             referencedRelation: "ordens_servico"

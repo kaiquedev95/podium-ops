@@ -3,10 +3,12 @@ import { Plus, Search, ChevronRight, ArrowLeft, CreditCard, Pencil, Trash2 } fro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useOrdensServico, useMutateOS, useClientes, useVeiculos, usePagamentos, useMutatePagamento, calcFinStatus } from "@/hooks/useSupabase";
+import { useOrdensServico, useMutateOS, useClientes, usePagamentos, useMutatePagamento, calcFinStatus } from "@/hooks/useSupabase";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { MoneyInput, parseBRL } from "@/components/MoneyInput";
+import { NovaOSModal, type NovaOSForm, type LineItem } from "@/components/NovaOSModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const finBadge = (s: string) => {
   const map: Record<string, string> = { aberto: "badge-open", parcial: "badge-partial", pago: "badge-paid", atrasado: "badge-overdue" };
@@ -26,7 +28,6 @@ const ServiceOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [editOS, setEditOS] = useState<any>(null);
   const [selectedOS, setSelectedOS] = useState<string | null>(null);
-  const [form, setForm] = useState({ cliente_id: "", veiculo_id: "", como_chegou: "", o_que_foi_feito: "", pecas_texto: "", total: "", status: "em andamento", vencimento: "" });
 
   const ordens = (ordensRaw || []).map((os) => {
     const totalPago = (os.pagamentos || []).reduce((s: number, p: any) => s + Number(p.valor), 0);
@@ -48,50 +49,80 @@ const ServiceOrders = () => {
     return matchSearch && matchStatus;
   });
 
-  const openNew = () => {
-    setForm({ cliente_id: "", veiculo_id: "", como_chegou: "", o_que_foi_feito: "", pecas_texto: "", total: "", status: "em andamento", vencimento: "" });
-    setEditOS(null);
-    setShowForm(true);
-  };
+  const openNew = () => { setEditOS(null); setShowForm(true); };
+  const openEdit = (os: any) => { setEditOS(os); setShowForm(true); };
 
-  const openEdit = (os: any) => {
-    setForm({
-      cliente_id: os.cliente_id,
-      veiculo_id: os.veiculo_id || "",
-      como_chegou: os.como_chegou || "",
-      o_que_foi_feito: os.o_que_foi_feito || "",
-      pecas_texto: os.pecas_texto || "",
-      total: Number(os.total).toFixed(2).replace(".", ","),
-      status: os.status,
-      vencimento: os.vencimento || "",
-    });
-    setEditOS(os);
-    setShowForm(true);
-  };
-
-  const handleSave = () => {
+  const handleSave = async (form: NovaOSForm, servicos: LineItem[], pecas: LineItem[]) => {
     if (!form.cliente_id) { toast.error("Selecione um cliente"); return; }
+
+    const totalServicos = servicos.reduce((s, i) => s + parseBRL(i.valor), 0);
+    const totalPecas = pecas.reduce((s, i) => s + parseBRL(i.valor), 0);
+    const desconto = parseBRL(form.desconto);
+    const totalOS = Math.max(0, totalServicos + totalPecas - desconto);
+
     const payload = {
       cliente_id: form.cliente_id,
       veiculo_id: form.veiculo_id || null,
-      como_chegou: form.como_chegou || null,
-      o_que_foi_feito: form.o_que_foi_feito || null,
-      pecas_texto: form.pecas_texto || null,
-      total: parseBRL(form.total),
+      data_entrada: form.data_entrada ? new Date(form.data_entrada).toISOString() : new Date().toISOString(),
+      km_entrada: form.km_entrada ? parseInt(form.km_entrada) : null,
       status: form.status,
-      vencimento: form.vencimento || null,
+      data_saida: form.data_saida ? new Date(form.data_saida).toISOString() : null,
+      como_chegou: form.como_chegou || null,
+      reclamacao_cliente: form.reclamacao_cliente || null,
+      diagnostico: form.diagnostico || null,
+      total: totalOS,
+      desconto: desconto,
+      observacoes: form.observacoes || null,
+      o_que_foi_feito: null as string | null,
+      pecas_texto: null as string | null,
+      vencimento: null as string | null,
     };
 
-    if (editOS) {
-      update.mutate({ id: editOS.id, ...payload }, {
-        onSuccess: () => { toast.success("OS atualizada!"); setShowForm(false); },
-        onError: (e) => toast.error(e.message),
-      });
-    } else {
-      create.mutate(payload, {
-        onSuccess: () => { toast.success("OS criada!"); setShowForm(false); },
-        onError: (e) => toast.error(e.message),
-      });
+    try {
+      let osId: string;
+      if (editOS) {
+        const { data, error } = await supabase.from("ordens_servico").update(payload).eq("id", editOS.id).select().single();
+        if (error) throw error;
+        osId = data.id;
+        // Clear old items
+        await supabase.from("servicos_os").delete().eq("ordem_servico_id", osId);
+        await supabase.from("pecas_os").delete().eq("ordem_servico_id", osId);
+      } else {
+        const { data, error } = await supabase.from("ordens_servico").insert(payload).select().single();
+        if (error) throw error;
+        osId = data.id;
+      }
+
+      // Insert line items
+      if (servicos.length > 0) {
+        const { error } = await supabase.from("servicos_os").insert(
+          servicos.map((s) => ({ ordem_servico_id: osId, descricao: s.descricao, valor: parseBRL(s.valor) }))
+        );
+        if (error) throw error;
+      }
+      if (pecas.length > 0) {
+        const { error } = await supabase.from("pecas_os").insert(
+          pecas.map((p) => ({ ordem_servico_id: osId, descricao: p.descricao, valor: parseBRL(p.valor) }))
+        );
+        if (error) throw error;
+      }
+
+      // Register initial payment if provided
+      const valorPago = parseBRL(form.valor_pago);
+      if (valorPago > 0 && !editOS) {
+        await supabase.from("pagamentos").insert({
+          ordem_servico_id: osId,
+          valor: valorPago,
+          forma_pagamento: form.forma_pagamento,
+        });
+      }
+
+      toast.success(editOS ? "OS atualizada!" : "OS criada!");
+      setShowForm(false);
+      // Invalidate queries
+      window.location.reload(); // simple refresh to reload all data
+    } catch (e: any) {
+      toast.error(e.message);
     }
   };
 
@@ -161,42 +192,14 @@ const ServiceOrders = () => {
         </table>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editOS ? "Editar" : "Nova"} Ordem de Serviço</DialogTitle></DialogHeader>
-          <NewOSForm form={form} setForm={setForm} clientes={clientes || []} onSave={handleSave} isPending={create.isPending || update.isPending} />
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-const NewOSForm = ({ form, setForm, clientes, onSave, isPending }: any) => {
-  const { data: veiculos } = useVeiculos(form.cliente_id || undefined);
-  return (
-    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-      <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={form.cliente_id} onChange={(e) => setForm({ ...form, cliente_id: e.target.value, veiculo_id: "" })}>
-        <option value="">Selecione o cliente *</option>
-        {clientes.map((c: any) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-      </select>
-      {form.cliente_id && (
-        <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={form.veiculo_id} onChange={(e) => setForm({ ...form, veiculo_id: e.target.value })}>
-          <option value="">Selecione o veículo</option>
-          {(veiculos || []).map((v: any) => <option key={v.id} value={v.id}>{v.marca} {v.modelo} — {v.placa}</option>)}
-        </select>
-      )}
-      <textarea className="w-full rounded-lg border border-border bg-card p-2 text-sm min-h-[60px]" placeholder="Como o carro chegou" value={form.como_chegou} onChange={(e) => setForm({ ...form, como_chegou: e.target.value })} />
-      <textarea className="w-full rounded-lg border border-border bg-card p-2 text-sm min-h-[60px]" placeholder="O que foi feito" value={form.o_que_foi_feito} onChange={(e) => setForm({ ...form, o_que_foi_feito: e.target.value })} />
-      <Input placeholder="Peças" value={form.pecas_texto} onChange={(e) => setForm({ ...form, pecas_texto: e.target.value })} />
-      <MoneyInput value={form.total} onChange={(v) => setForm({ ...form, total: v })} placeholder="0,00" />
-      <Input type="date" placeholder="Vencimento" value={form.vencimento} onChange={(e) => setForm({ ...form, vencimento: e.target.value })} />
-      <select className="w-full rounded-lg border border-border bg-card p-2 text-sm" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-        <option value="em andamento">Em andamento</option>
-        <option value="aguardando peça">Aguardando peça</option>
-        <option value="orçamento">Orçamento</option>
-        <option value="concluída">Concluída</option>
-      </select>
-      <Button onClick={onSave} disabled={isPending} className="w-full">{isPending ? "Salvando..." : "Salvar"}</Button>
+      <NovaOSModal
+        open={showForm}
+        onOpenChange={setShowForm}
+        clientes={clientes || []}
+        onSave={handleSave}
+        isPending={false}
+        editData={editOS}
+      />
     </div>
   );
 };
