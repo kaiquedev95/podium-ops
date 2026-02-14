@@ -14,23 +14,40 @@ interface MoneyInputProps {
  * Stores raw string like "1500,50" and exposes toNumber() helper.
  * Parent stores string; convert with parseBRL when saving.
  */
+const formatBRL = (raw: string): string => {
+  // Strip everything except digits and comma
+  let clean = raw.replace(/[^0-9,]/g, "");
+  // Only one comma allowed
+  const parts = clean.split(",");
+  if (parts.length > 2) {
+    clean = parts[0] + "," + parts.slice(1).join("");
+  }
+  // Limit decimal part to 2 digits
+  let intPart = parts[0];
+  const decPart = parts.length >= 2 ? parts[1].slice(0, 2) : undefined;
+  // Add thousand separators (dots) to integer part
+  intPart = intPart.replace(/^0+(?=\d)/, ""); // remove leading zeros
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return decPart !== undefined ? `${intPart},${decPart}` : intPart;
+};
+
 const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
   ({ value, onChange, placeholder = "0,00", className, disabled }, ref) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      // Allow digits, comma, and dot — normalize dots to commas
-      let raw = e.target.value.replace(/[^0-9.,]/g, "");
-      // Replace dots with commas (user might type either)
-      raw = raw.replace(/\./g, ",");
-      // Only allow one comma
-      const parts = raw.split(",");
-      if (parts.length > 2) {
-        raw = parts[0] + "," + parts.slice(1).join("");
+      const input = e.target.value;
+      // Normalize dots typed as decimal to comma (if user types dot after digits with no existing comma)
+      let normalized = input;
+      // If user typed a dot and there's no comma yet, treat it as decimal separator
+      if (normalized.includes(".") && !normalized.includes(",")) {
+        // Check if it's a single trailing dot (user just pressed dot for decimal)
+        const dotCount = (normalized.match(/\./g) || []).length;
+        if (dotCount === 1 && normalized.endsWith(".")) {
+          normalized = normalized.replace(".", ",");
+        }
       }
-      // Limit decimal to 2 digits
-      if (parts.length === 2 && parts[1].length > 2) {
-        raw = parts[0] + "," + parts[1].slice(0, 2);
-      }
-      onChange(raw);
+      // Remove thousand-separator dots (keep only digits and comma)
+      const formatted = formatBRL(normalized);
+      onChange(formatted);
     };
 
     return (
