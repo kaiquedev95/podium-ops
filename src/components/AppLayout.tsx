@@ -10,7 +10,10 @@ import {
   FileText,
   Settings,
   Wrench,
+  LogOut,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -69,14 +72,25 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
-              AP
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
+                AP
+              </div>
+              <div>
+                <p className="text-xs font-medium text-sidebar-accent-foreground">Admin Podium</p>
+                <p className="text-[10px] text-muted-foreground">Gerente</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-medium text-sidebar-accent-foreground">Admin Podium</p>
-              <p className="text-[10px] text-muted-foreground">Gerente</p>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={() => supabase.auth.signOut()}
+              title="Sair"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </aside>
