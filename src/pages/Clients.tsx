@@ -1,37 +1,68 @@
 import { useState } from "react";
-import { Search, Plus, Phone, ChevronRight, Car, ArrowLeft, Trash2, Pencil } from "lucide-react";
+import { Search, Plus, Phone, ChevronRight, Car, ArrowLeft, Trash2, Pencil, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useClientes, useMutateCliente, useVeiculos, useMutateVeiculo, useLogsAtendimento, useMutateLog } from "@/hooks/useSupabase";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Label } from "@/components/ui/label";
+
+const emptyForm = { nome: "", telefone: "", whatsapp: "", cpf_cnpj: "", email: "", endereco: "", cep: "", cidade: "", estado: "", bairro: "", numero: "", complemento: "" };
 
 const Clients = () => {
   const [search, setSearch] = useState("");
   const { data: clientes, isLoading } = useClientes();
+  const { data: allVeiculos } = useVeiculos();
   const { create, update, remove } = useMutateCliente();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", telefone: "", whatsapp: "", cpf_cnpj: "", endereco: "" });
+  const [form, setForm] = useState(emptyForm);
 
-  const filtered = (clientes || []).filter((c) =>
-    c.nome.toLowerCase().includes(search.toLowerCase()) || (c.telefone || "").includes(search)
-  );
+  const filtered = (clientes || []).filter((c) => {
+    const s = search.toLowerCase().trim();
+    if (!s) return true;
+    if (c.nome.toLowerCase().includes(s)) return true;
+    if ((c.telefone || "").includes(s)) return true;
+    if ((c.whatsapp || "").includes(s)) return true;
+    if ((c.cpf_cnpj || "").toLowerCase().includes(s)) return true;
+    if ((c.email || "").toLowerCase().includes(s)) return true;
+    // Search by placa via vehicles
+    const clientVeiculos = (allVeiculos || []).filter((v) => v.cliente_id === c.id);
+    if (clientVeiculos.some((v) => (v.placa || "").toLowerCase().includes(s))) return true;
+    return false;
+  });
 
-  const openNew = () => { setForm({ nome: "", telefone: "", whatsapp: "", cpf_cnpj: "", endereco: "" }); setEditId(null); setShowForm(true); };
-  const openEdit = (c: any) => { setForm({ nome: c.nome, telefone: c.telefone || "", whatsapp: c.whatsapp || "", cpf_cnpj: c.cpf_cnpj || "", endereco: c.endereco || "" }); setEditId(c.id); setShowForm(true); };
+  const openNew = () => { setForm(emptyForm); setEditId(null); setShowForm(true); };
+  const openEdit = (c: any) => {
+    setForm({
+      nome: c.nome, telefone: c.telefone || "", whatsapp: c.whatsapp || "",
+      cpf_cnpj: c.cpf_cnpj || "", email: c.email || "", endereco: c.endereco || "",
+      cep: c.cep || "", cidade: c.cidade || "", estado: c.estado || "",
+      bairro: c.bairro || "", numero: c.numero || "", complemento: c.complemento || "",
+    });
+    setEditId(c.id); setShowForm(true);
+  };
 
   const handleSave = () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
-    const fn = editId ? update.mutateAsync({ id: editId, ...form }) : create.mutateAsync(form);
-    fn.then(() => { toast.success(editId ? "Atualizado!" : "Criado!"); setShowForm(false); }).catch((e) => toast.error(e.message));
+    const fn = editId ? update.mutateAsync({ id: editId, ...form }) : create.mutateAsync(form as any);
+    fn.then(() => { toast.success(editId ? "Atualizado!" : "Criado!"); setShowForm(false); }).catch((e: any) => toast.error(e.message));
   };
 
   const handleDelete = (id: string) => {
     if (!confirm("Excluir cliente?")) return;
     remove.mutate(id, { onSuccess: () => toast.success("Excluído!"), onError: (e) => toast.error(e.message) });
+  };
+
+  const sendWhatsApp = (whatsapp: string, nome: string) => {
+    const phone = whatsapp.replace(/\D/g, "");
+    if (!phone) { toast.error("WhatsApp não cadastrado"); return; }
+    const url = `https://wa.me/55${phone}?text=${encodeURIComponent(`Olá ${nome}!`)}`;
+    window.open(url, "_blank");
   };
 
   if (selectedId) {
@@ -49,7 +80,7 @@ const Clients = () => {
       </div>
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        <Input placeholder="Buscar por nome, telefone, placa, CPF ou email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
       </div>
       <div className="space-y-3">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
@@ -62,25 +93,92 @@ const Clients = () => {
               <p className="font-medium">{client.nome}</p>
               <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
                 {client.telefone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {client.telefone}</span>}
+                {(client as any).email && <span>{(client as any).email}</span>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              {client.whatsapp && (
+                <button className="rounded-lg p-2 text-muted-foreground hover:text-[hsl(var(--success))]" title="Enviar WhatsApp" onClick={(e) => { e.stopPropagation(); sendWhatsApp(client.whatsapp!, client.nome); }}>
+                  <MessageCircle className="h-4 w-4" />
+                </button>
+              )}
               <button className="rounded-lg p-2 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); openEdit(client); }}><Pencil className="h-4 w-4" /></button>
               <button className="rounded-lg p-2 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(client.id); }}><Trash2 className="h-4 w-4" /></button>
             </div>
           </div>
         ))}
+        {!isLoading && filtered.length === 0 && <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>}
       </div>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo"} Cliente</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Input placeholder="Nome *" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-            <Input placeholder="Telefone" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
-            <Input placeholder="WhatsApp" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} />
-            <Input placeholder="CPF/CNPJ" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} />
-            <Input placeholder="Endereço" value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Nome *</Label>
+              <Input placeholder="Nome completo" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Telefone</Label>
+                <Input placeholder="(00) 0000-0000" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">WhatsApp</Label>
+                <Input placeholder="(00) 00000-0000" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">CPF/CNPJ</Label>
+                <Input placeholder="000.000.000-00" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">E-mail</Label>
+                <Input placeholder="email@exemplo.com" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <p className="text-sm font-medium mb-3">Endereço</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">CEP</Label>
+                    <Input placeholder="00000-000" value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Rua / Logradouro</Label>
+                    <Input placeholder="Rua, Av, etc." value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Número</Label>
+                    <Input placeholder="Nº" value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Complemento</Label>
+                    <Input placeholder="Apto, Sala, etc." value={form.complemento} onChange={(e) => setForm({ ...form, complemento: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Bairro</Label>
+                    <Input placeholder="Bairro" value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Cidade</Label>
+                    <Input placeholder="Cidade" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Estado</Label>
+                    <Input placeholder="UF" value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <Button onClick={handleSave} disabled={create.isPending || update.isPending} className="w-full">
               {(create.isPending || update.isPending) ? "Salvando..." : "Salvar"}
             </Button>
@@ -141,11 +239,8 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       });
     } else {
       createLog.mutate({
-        cliente_id: id,
-        canal: logForm.canal,
-        descricao: logForm.descricao,
-        data_combinada: logForm.data_combinada || null,
-        usuario_responsavel: logForm.usuario_responsavel,
+        cliente_id: id, canal: logForm.canal, descricao: logForm.descricao,
+        data_combinada: logForm.data_combinada || null, usuario_responsavel: logForm.usuario_responsavel,
       }, {
         onSuccess: () => {
           toast.success(logForm.data_combinada ? "Log criado + pendência gerada!" : "Log criado!");
@@ -162,18 +257,43 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
     removeLog.mutate(logId, { onSuccess: () => toast.success("Log excluído!"), onError: (e) => toast.error(e.message) });
   };
 
+  const sendWhatsApp = (whatsapp: string, nome: string) => {
+    const phone = whatsapp.replace(/\D/g, "");
+    if (!phone) { toast.error("WhatsApp não cadastrado"); return; }
+    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(`Olá ${nome}!`)}`, "_blank");
+  };
+
+  const formatAddress = () => {
+    const c = cliente as any;
+    if (!c) return null;
+    const parts = [
+      c.endereco, c.numero ? `Nº ${c.numero}` : null, c.complemento,
+      c.bairro, c.cidade && c.estado ? `${c.cidade}/${c.estado}` : c.cidade || c.estado,
+      c.cep ? `CEP: ${c.cep}` : null,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : null;
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Button>
         <Link to="/"><Button variant="ghost" size="sm">Início</Button></Link>
       </div>
-      <h1 className="text-2xl font-bold">{cliente?.nome}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">{cliente?.nome}</h1>
+        {cliente?.whatsapp && (
+          <Button size="sm" variant="outline" className="gap-2 border-[hsl(var(--success))]/30 text-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/10" onClick={() => sendWhatsApp(cliente.whatsapp!, cliente.nome)}>
+            <MessageCircle className="h-4 w-4" /> WhatsApp
+          </Button>
+        )}
+      </div>
       <div className="text-sm text-muted-foreground space-y-1">
         {cliente?.telefone && <p>📞 {cliente.telefone}</p>}
         {cliente?.whatsapp && <p>💬 {cliente.whatsapp}</p>}
-        {cliente?.endereco && <p>📍 {cliente.endereco}</p>}
+        {(cliente as any)?.email && <p>📧 {(cliente as any).email}</p>}
         {cliente?.cpf_cnpj && <p>🪪 {cliente.cpf_cnpj}</p>}
+        {formatAddress() && <p>📍 {formatAddress()}</p>}
       </div>
 
       {/* Veículos */}
