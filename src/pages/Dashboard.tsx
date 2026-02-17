@@ -156,12 +156,12 @@ const Dashboard = () => {
           </div>
           <div className="divide-y divide-border">
             {topDebtors.map((d) => (
-              <div key={d.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <p className="text-sm font-medium">{(d as any).clientes?.nome}</p>
-                  <p className="text-xs text-muted-foreground">{(d as any).veiculos?.modelo}</p>
+              <div key={d.id} className="px-5 py-3 space-y-1 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{(d as any).clientes?.nome}</p>
+                  <p className="text-xs text-muted-foreground truncate">{(d as any).veiculos?.modelo}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between sm:gap-3">
                   <span className="text-sm font-bold text-destructive">R$ {d.saldo.toLocaleString("pt-BR")}</span>
                   <Button size="sm" variant="outline" className="text-xs" onClick={() => setPayDialog({ osId: d.id, saldo: d.saldo })}>
                     Pagar

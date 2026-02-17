@@ -62,16 +62,16 @@ const Financial = () => {
         <Link to="/"><Button variant="ghost" size="sm">Início</Button></Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <p className="stat-label">Total a Receber</p>
-          <p className="mt-2 text-2xl font-bold text-primary">R$ {totalBalance.toLocaleString("pt-BR")}</p>
+          <p className="mt-2 text-lg sm:text-2xl font-bold text-primary">R$ {totalBalance.toLocaleString("pt-BR")}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <p className="stat-label">Atrasados</p>
-          <p className="mt-2 text-2xl font-bold text-destructive">R$ {totalOverdue.toLocaleString("pt-BR")}</p>
+          <p className="mt-2 text-lg sm:text-2xl font-bold text-destructive">R$ {totalOverdue.toLocaleString("pt-BR")}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="col-span-2 sm:col-span-1 rounded-xl border border-border bg-card p-4 sm:p-5">
           <p className="stat-label">OS com saldo</p>
           <p className="mt-2 stat-value">{ordens.length}</p>
         </div>
@@ -93,28 +93,32 @@ const Financial = () => {
 
       <div className="space-y-3">
         {filtered.map((r) => (
-          <div key={r.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 card-hover">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10">
-              <DollarSign className="h-5 w-5 text-destructive" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-primary">{r.id.slice(0, 8)}</span>
-                <span className="text-sm font-medium">{(r as any).clientes?.nome}</span>
+          <div key={r.id} className="rounded-xl border border-border bg-card p-4 card-hover space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-4">
+            <div className="flex items-center gap-3 sm:flex-1 sm:min-w-0">
+              <div className="hidden sm:flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10">
+                <DollarSign className="h-5 w-5 text-destructive" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                {(r as any).veiculos?.modelo} • {r.vencimento ? `Venc: ${r.vencimento}` : "Sem vencimento"}
-              </p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-primary">{r.id.slice(0, 8)}</span>
+                  <span className="text-sm font-medium">{(r as any).clientes?.nome}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {(r as any).veiculos?.modelo} • {r.vencimento ? `Venc: ${r.vencimento}` : "Sem vencimento"}
+                </p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-destructive">R$ {r.saldo.toLocaleString("pt-BR")}</p>
-              <p className="text-[10px] text-muted-foreground">de R$ {Number(r.total).toLocaleString("pt-BR")} (pago: R$ {r.totalPago.toLocaleString("pt-BR")})</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setPayDialog({ osId: r.id, saldo: r.saldo })}>
-                <CreditCard className="h-3 w-3" /> Pagar
-              </Button>
-              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setHistoryOS(r.id)}>Histórico</Button>
+            <div className="flex items-center justify-between gap-3 sm:flex-shrink-0">
+              <div className="text-left sm:text-right">
+                <p className="text-sm font-bold text-destructive">R$ {r.saldo.toLocaleString("pt-BR")}</p>
+                <p className="text-[10px] text-muted-foreground">de R$ {Number(r.total).toLocaleString("pt-BR")} (pago: R$ {r.totalPago.toLocaleString("pt-BR")})</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setPayDialog({ osId: r.id, saldo: r.saldo })}>
+                  <CreditCard className="h-3 w-3" /> Pagar
+                </Button>
+                <Button size="sm" variant="ghost" className="text-xs" onClick={() => setHistoryOS(r.id)}>Histórico</Button>
+              </div>
             </div>
           </div>
         ))}

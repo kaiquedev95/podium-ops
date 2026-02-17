@@ -112,11 +112,11 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="info">Informações</TabsTrigger>
-            <TabsTrigger value="servicos">Serviços</TabsTrigger>
-            <TabsTrigger value="pecas">Peças</TabsTrigger>
-            <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="info" className="text-xs sm:text-sm">Informações</TabsTrigger>
+            <TabsTrigger value="servicos" className="text-xs sm:text-sm">Serviços</TabsTrigger>
+            <TabsTrigger value="pecas" className="text-xs sm:text-sm">Peças</TabsTrigger>
+            <TabsTrigger value="pagamento" className="text-xs sm:text-sm">Pagamento</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4">
@@ -152,7 +152,7 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Data de Entrada *</label>
                   <Input type="date" value={form.data_entrada} onChange={(e) => setForm({ ...form, data_entrada: e.target.value })} />
@@ -163,7 +163,7 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Status</label>
                   <select className="w-full rounded-lg border border-input bg-background p-2 text-sm" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
@@ -195,18 +195,20 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
 
             {/* ── ABA SERVIÇOS ── */}
             <TabsContent value="servicos" className="space-y-4 m-0">
-              <div className="flex items-end gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                 <div className="flex-1 space-y-1">
                   <label className="text-sm font-medium">Descrição do serviço</label>
                   <Input placeholder="Ex: Troca de óleo" value={newServico.descricao} onChange={(e) => setNewServico({ ...newServico, descricao: e.target.value })} />
                 </div>
-                <div className="w-36 space-y-1">
-                  <label className="text-sm font-medium">Valor R$</label>
-                  <MoneyInput value={newServico.valor} onChange={(v) => setNewServico({ ...newServico, valor: v })} />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 sm:w-36 space-y-1">
+                    <label className="text-sm font-medium">Valor R$</label>
+                    <MoneyInput value={newServico.valor} onChange={(v) => setNewServico({ ...newServico, valor: v })} />
+                  </div>
+                  <Button size="icon" onClick={addServico} className="shrink-0">
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button size="icon" onClick={addServico} className="shrink-0">
-                  <Plus className="h-4 w-4" />
-                </Button>
               </div>
 
               {servicos.length === 0 ? (
@@ -237,18 +239,20 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
 
             {/* ── ABA PEÇAS ── */}
             <TabsContent value="pecas" className="space-y-4 m-0">
-              <div className="flex items-end gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                 <div className="flex-1 space-y-1">
                   <label className="text-sm font-medium">Descrição da peça</label>
                   <Input placeholder="Ex: Filtro de óleo" value={newPeca.descricao} onChange={(e) => setNewPeca({ ...newPeca, descricao: e.target.value })} />
                 </div>
-                <div className="w-36 space-y-1">
-                  <label className="text-sm font-medium">Valor R$</label>
-                  <MoneyInput value={newPeca.valor} onChange={(v) => setNewPeca({ ...newPeca, valor: v })} />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 sm:w-36 space-y-1">
+                    <label className="text-sm font-medium">Valor R$</label>
+                    <MoneyInput value={newPeca.valor} onChange={(v) => setNewPeca({ ...newPeca, valor: v })} />
+                  </div>
+                  <Button size="icon" onClick={addPeca} className="shrink-0">
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button size="icon" onClick={addPeca} className="shrink-0">
-                  <Plus className="h-4 w-4" />
-                </Button>
               </div>
 
               {pecas.length === 0 ? (
@@ -291,13 +295,13 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Desconto R$</label>
                   <MoneyInput value={form.desconto} onChange={(v) => setForm({ ...form, desconto: v })} placeholder="0,00" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Valor Pago pelo Cliente R$</label>
+                  <label className="text-sm font-medium">Valor Pago R$</label>
                   <MoneyInput value={form.valor_pago} onChange={(v) => setForm({ ...form, valor_pago: v })} placeholder="0,00" />
                 </div>
               </div>

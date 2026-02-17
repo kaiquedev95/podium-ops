@@ -51,7 +51,7 @@ const Pendencies = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Pendências</h1>
           <p className="text-sm text-muted-foreground">Combinados, retornos e compromissos com clientes</p>
@@ -62,11 +62,11 @@ const Pendencies = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {groups.map((g) => (
-          <div key={g.title} className="rounded-xl border border-border bg-card p-4 text-center">
-            <p className="stat-label">{g.title}</p>
-            <p className={`mt-2 text-2xl font-bold ${g.color}`}>{g.items.length}</p>
+          <div key={g.title} className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
+            <p className="stat-label text-[10px] sm:text-xs">{g.title}</p>
+            <p className={`mt-1 sm:mt-2 text-xl sm:text-2xl font-bold ${g.color}`}>{g.items.length}</p>
           </div>
         ))}
       </div>
@@ -78,31 +78,33 @@ const Pendencies = () => {
           </h2>
           <div className="space-y-2">
             {group.items.map((p) => (
-              <div key={p.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 card-hover">
-                <group.icon className={`h-5 w-5 flex-shrink-0 ${group.color}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+              <div key={p.id} className="rounded-xl border border-border bg-card p-4 card-hover space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-4">
+                <div className="flex items-center gap-3 sm:flex-1 sm:min-w-0">
+                  <group.icon className={`h-5 w-5 flex-shrink-0 ${group.color}`} />
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{(p as any).clientes?.nome}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground truncate">{p.descricao}</p>
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{p.descricao}</p>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <span className={p.data_prevista < todayStr ? "badge-overdue" : p.data_prevista === todayStr ? "badge-open" : "badge-pending"}>
-                    {p.data_prevista}
-                  </span>
-                  <p className="mt-1 text-[10px] text-muted-foreground">Resp: {p.responsavel}</p>
-                </div>
-                <div className="flex-shrink-0 flex gap-1">
-                  <button onClick={() => openEdit(p)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
-                  {p.status === "aberta" ? (
-                    <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleConcluir(p.id)}>
-                      <CheckCircle2 className="h-3 w-3" /> Concluir
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => handleReabrir(p.id)}>
-                      <RotateCcw className="h-3 w-3" /> Reabrir
-                    </Button>
-                  )}
+                <div className="flex items-center justify-between gap-2 sm:flex-shrink-0">
+                  <div>
+                    <span className={p.data_prevista < todayStr ? "badge-overdue" : p.data_prevista === todayStr ? "badge-open" : "badge-pending"}>
+                      {p.data_prevista}
+                    </span>
+                    <p className="mt-1 text-[10px] text-muted-foreground">Resp: {p.responsavel}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(p)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
+                    {p.status === "aberta" ? (
+                      <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleConcluir(p.id)}>
+                        <CheckCircle2 className="h-3 w-3" /> Concluir
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => handleReabrir(p.id)}>
+                        <RotateCcw className="h-3 w-3" /> Reabrir
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

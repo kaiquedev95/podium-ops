@@ -107,38 +107,38 @@ const Reports = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Relatórios</h1>
           <p className="text-sm text-muted-foreground">Resumo financeiro mensal</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link to="/"><Button variant="ghost" size="sm">Início</Button></Link>
           <select className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm" value={mesFilter} onChange={(e) => setMesFilter(e.target.value)}>
             {meses.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
           <Button variant="outline" className="gap-2" onClick={exportPDF}>
-            <Download className="h-4 w-4" /> Exportar PDF
+            <Download className="h-4 w-4" /> <span className="hidden sm:inline">Exportar</span> PDF
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-border bg-card p-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-[hsl(var(--success))]" /><p className="stat-label">Faturamento</p></div>
-          <p className="mt-3 text-2xl font-bold text-[hsl(var(--success))]">R$ {faturamento.toLocaleString("pt-BR")}</p>
+          <p className="mt-2 sm:mt-3 text-lg sm:text-2xl font-bold text-[hsl(var(--success))]">R$ {faturamento.toLocaleString("pt-BR")}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-destructive" /><p className="stat-label">A Receber</p></div>
-          <p className="mt-3 text-2xl font-bold text-destructive">R$ {aReceber.toLocaleString("pt-BR")}</p>
+          <p className="mt-2 sm:mt-3 text-lg sm:text-2xl font-bold text-destructive">R$ {aReceber.toLocaleString("pt-BR")}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-2"><TrendingDown className="h-4 w-4 text-primary" /><p className="stat-label">Despesas</p></div>
-          <p className="mt-3 text-2xl font-bold text-primary">R$ {totalDespesas.toLocaleString("pt-BR")}</p>
+          <p className="mt-2 sm:mt-3 text-lg sm:text-2xl font-bold text-primary">R$ {totalDespesas.toLocaleString("pt-BR")}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-[hsl(var(--success))]" /><p className="stat-label">Lucro</p></div>
-          <p className="mt-3 text-2xl font-bold" style={{ color: lucro >= 0 ? "hsl(var(--success))" : "hsl(var(--destructive))" }}>R$ {lucro.toLocaleString("pt-BR")}</p>
+          <p className="mt-2 sm:mt-3 text-lg sm:text-2xl font-bold" style={{ color: lucro >= 0 ? "hsl(var(--success))" : "hsl(var(--destructive))" }}>R$ {lucro.toLocaleString("pt-BR")}</p>
         </div>
       </div>
 
@@ -148,7 +148,8 @@ const Reports = () => {
           <h2 className="font-semibold">Despesas do Mês</h2>
           <Button size="sm" className="gap-1" onClick={openNewDesp}><Plus className="h-3 w-3" /> Nova Despesa</Button>
         </div>
-        <table className="w-full">
+        {/* Desktop table */}
+        <table className="hidden md:table w-full">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
               <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Data</th>
@@ -176,6 +177,23 @@ const Reports = () => {
             {mesDespesas.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma despesa neste mês</td></tr>}
           </tbody>
         </table>
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border">
+          {mesDespesas.map((d) => (
+            <div key={d.id} className="px-4 py-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">{d.data} • {d.categoria || "Sem categoria"}</span>
+                <div className="flex gap-1">
+                  <button onClick={() => openEditDesp(d)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-3 w-3" /></button>
+                  <button onClick={() => handleDeleteDesp(d.id)} className="rounded p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              </div>
+              <p className="text-sm">{d.descricao}</p>
+              <p className="text-sm font-semibold text-destructive">R$ {Number(d.valor).toLocaleString("pt-BR")}</p>
+            </div>
+          ))}
+          {mesDespesas.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhuma despesa neste mês</p>}
+        </div>
       </div>
 
       <Dialog open={showDespForm} onOpenChange={setShowDespForm}>

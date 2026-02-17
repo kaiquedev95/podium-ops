@@ -68,34 +68,34 @@ const Schedule = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Agendamentos</h1>
           <p className="text-sm text-muted-foreground">{format(weekStart, "'Semana de' dd", { locale: ptBR })} a {format(addDays(weekStart, 5), "dd 'de' MMMM", { locale: ptBR })}</p>
         </div>
         <div className="flex gap-2">
           <Link to="/"><Button variant="ghost" size="sm">Início</Button></Link>
-          <Button className="gap-2" onClick={openNew}><Plus className="h-4 w-4" /> Novo Agendamento</Button>
+          <Button className="gap-2" onClick={openNew}><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Novo</span> Agendar</Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" onClick={() => setWeekStart(addDays(weekStart, -7))}>←</button>
-        <div className="flex flex-1 gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
+        <button className="rounded-lg p-1.5 sm:p-2 text-muted-foreground hover:bg-secondary flex-shrink-0" onClick={() => setWeekStart(addDays(weekStart, -7))}>←</button>
+        <div className="flex flex-1 gap-1 sm:gap-2 overflow-x-auto">
           {days.map((day, i) => {
             const count = (agendamentos || []).filter((a) => isSameDay(new Date(a.data_hora), day)).length;
             const isSelected = isSameDay(day, selectedDay);
             const isToday = isSameDay(day, new Date());
             return (
-              <button key={i} onClick={() => setSelectedDay(day)} className={`flex flex-1 flex-col items-center gap-1 rounded-xl border py-3 transition-all ${isSelected ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-secondary-foreground hover:border-primary/30"}`}>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{weekDayNames[i]}</span>
-                <span className={`text-lg font-bold ${isToday && !isSelected ? "text-primary" : ""}`}>{format(day, "dd")}</span>
-                <span className="text-[10px] text-muted-foreground">{count} agend.</span>
+              <button key={i} onClick={() => setSelectedDay(day)} className={`flex min-w-[48px] flex-1 flex-col items-center gap-0.5 sm:gap-1 rounded-xl border py-2 sm:py-3 transition-all ${isSelected ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-secondary-foreground hover:border-primary/30"}`}>
+                <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{weekDayNames[i]}</span>
+                <span className={`text-base sm:text-lg font-bold ${isToday && !isSelected ? "text-primary" : ""}`}>{format(day, "dd")}</span>
+                <span className="text-[9px] sm:text-[10px] text-muted-foreground">{count}</span>
               </button>
             );
           })}
         </div>
-        <button className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" onClick={() => setWeekStart(addDays(weekStart, 7))}>→</button>
+        <button className="rounded-lg p-1.5 sm:p-2 text-muted-foreground hover:bg-secondary flex-shrink-0" onClick={() => setWeekStart(addDays(weekStart, 7))}>→</button>
       </div>
 
       <div className="space-y-3">
@@ -106,25 +106,29 @@ const Schedule = () => {
           </div>
         ) : (
           dayAgendamentos.map((apt) => (
-            <div key={apt.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 card-hover">
-              <div className="flex h-12 w-16 flex-col items-center justify-center rounded-lg bg-primary/10">
-                <Clock className="mb-0.5 h-3 w-3 text-primary" />
-                <span className="text-sm font-bold text-primary">{format(new Date(apt.data_hora), "HH:mm")}</span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <User className="h-3 w-3 text-muted-foreground" />
-                  <p className="text-sm font-medium">{(apt as any).clientes?.nome}</p>
+            <div key={apt.id} className="rounded-xl border border-border bg-card p-4 card-hover space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-4">
+              <div className="flex items-center gap-3 sm:contents">
+                <div className="flex h-10 w-14 sm:h-12 sm:w-16 flex-col items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                  <Clock className="mb-0.5 h-3 w-3 text-primary" />
+                  <span className="text-sm font-bold text-primary">{format(new Date(apt.data_hora), "HH:mm")}</span>
                 </div>
-                <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-                  {(apt as any).veiculos?.modelo && <span className="flex items-center gap-1"><Car className="h-3 w-3" /> {(apt as any).veiculos?.modelo}</span>}
-                  {apt.servico_resumo && <span>• {apt.servico_resumo}</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <p className="text-sm font-medium truncate">{(apt as any).clientes?.nome}</p>
+                  </div>
+                  <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                    {(apt as any).veiculos?.modelo && <span className="flex items-center gap-1"><Car className="h-3 w-3" /> {(apt as any).veiculos?.modelo}</span>}
+                    {apt.servico_resumo && <span className="truncate">• {apt.servico_resumo}</span>}
+                  </div>
                 </div>
               </div>
-              <span className={apt.status === "confirmado" ? "badge-paid" : "badge-open"}>{apt.status}</span>
-              <div className="flex gap-1">
-                <button onClick={() => openEdit(apt)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
-                <button onClick={() => handleDelete(apt.id)} className="rounded p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+              <div className="flex items-center justify-between sm:flex-shrink-0 sm:gap-2">
+                <span className={apt.status === "confirmado" ? "badge-paid" : "badge-open"}>{apt.status}</span>
+                <div className="flex gap-1">
+                  <button onClick={() => openEdit(apt)} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => handleDelete(apt.id)} className="rounded p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                </div>
               </div>
             </div>
           ))
