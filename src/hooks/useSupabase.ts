@@ -370,6 +370,72 @@ export const useMutateDespesa = () => {
   return { create, update, remove };
 };
 
+// ─── Estoque de Peças ───
+export const useEstoquePecas = () =>
+  useQuery({
+    queryKey: ["estoque_pecas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("estoque_pecas").select("*").order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+export const useMutateEstoquePeca = () => {
+  const qc = useQueryClient();
+  const create = useMutation({
+    mutationFn: async (p: any) => {
+      const { data, error } = await supabase.from("estoque_pecas").insert(p).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estoque_pecas"] }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...p }: any) => {
+      const { data, error } = await supabase.from("estoque_pecas").update(p).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estoque_pecas"] }),
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("estoque_pecas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estoque_pecas"] }),
+  });
+  return { create, update, remove };
+};
+
+// ─── Histórico de Compras ───
+export const useHistoricoCompras = () =>
+  useQuery({
+    queryKey: ["historico_compras"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("historico_compras").select("*, estoque_pecas(nome)").order("data_compra", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+export const useMutateHistoricoCompra = () => {
+  const qc = useQueryClient();
+  const create = useMutation({
+    mutationFn: async (c: any) => {
+      const { data, error } = await supabase.from("historico_compras").insert(c).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["historico_compras"] });
+      qc.invalidateQueries({ queryKey: ["estoque_pecas"] });
+    },
+  });
+  return { create };
+};
+
 // ─── Helpers ───
 export const calcFinStatus = (total: number, totalPago: number, vencimento?: string | null) => {
   if (total <= 0) return "pago";
