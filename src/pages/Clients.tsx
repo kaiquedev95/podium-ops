@@ -85,18 +85,20 @@ const Clients = () => {
       <div className="space-y-3">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
         {filtered.map((client) => (
-          <div key={client.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 card-hover cursor-pointer" onClick={() => setSelectedId(client.id)}>
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
-              {client.nome.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium">{client.nome}</p>
-              <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
-                {client.telefone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {client.telefone}</span>}
-                {(client as any).email && <span>{(client as any).email}</span>}
+          <div key={client.id} className="rounded-xl border border-border bg-card p-4 card-hover cursor-pointer space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-4" onClick={() => setSelectedId(client.id)}>
+            <div className="flex items-center gap-3 sm:flex-1 sm:min-w-0">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground flex-shrink-0">
+                {client.nome.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{client.nome}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0 text-xs text-muted-foreground">
+                  {client.telefone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {client.telefone}</span>}
+                  {(client as any).email && <span className="truncate">{(client as any).email}</span>}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-end gap-1 flex-shrink-0">
               {client.whatsapp && (
                 <button className="rounded-lg p-2 text-muted-foreground hover:text-[hsl(var(--success))]" title="Enviar WhatsApp" onClick={(e) => { e.stopPropagation(); sendWhatsApp(client.whatsapp!, client.nome); }}>
                   <MessageCircle className="h-4 w-4" />
@@ -142,27 +144,27 @@ const Clients = () => {
             <div className="border-t border-border pt-4">
               <p className="text-sm font-medium mb-3">Endereço</p>
               <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">CEP</Label>
                     <Input placeholder="00000-000" value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} />
                   </div>
-                  <div className="space-y-1 col-span-2">
+                  <div className="space-y-1 sm:col-span-2">
                     <Label className="text-xs text-muted-foreground">Rua / Logradouro</Label>
                     <Input placeholder="Rua, Av, etc." value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Número</Label>
                     <Input placeholder="Nº" value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} />
                   </div>
-                  <div className="space-y-1 col-span-2">
+                  <div className="space-y-1 sm:col-span-2">
                     <Label className="text-xs text-muted-foreground">Complemento</Label>
                     <Input placeholder="Apto, Sala, etc." value={form.complemento} onChange={(e) => setForm({ ...form, complemento: e.target.value })} />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Bairro</Label>
                     <Input placeholder="Bairro" value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} />
@@ -327,7 +329,7 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
         <div className="divide-y divide-border">
           {logs?.map((l) => (
             <div key={l.id} className="px-5 py-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
                 <span>{new Date(l.data_hora).toLocaleString("pt-BR")}</span>
                 <span className="rounded bg-secondary px-1.5 py-0.5">{l.canal}</span>
                 <span>por {l.usuario_responsavel}</span>

@@ -132,7 +132,7 @@ const ServiceOrders = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Ordens de Serviço</h1>
           <p className="text-sm text-muted-foreground">{ordens.length} ordens registradas</p>
@@ -144,16 +144,17 @@ const ServiceOrders = () => {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Buscar por cliente ou ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {filters.map((f) => (
-            <button key={f.value} onClick={() => setStatusFilter(f.value)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${statusFilter === f.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+            <button key={f.value} onClick={() => setStatusFilter(f.value)} className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${statusFilter === f.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
               {f.label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-xl border border-border bg-card overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
@@ -190,6 +191,36 @@ const ServiceOrders = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((os) => (
+          <div key={os.id} className="rounded-xl border border-border bg-card p-4 card-hover cursor-pointer space-y-2" onClick={() => setSelectedOS(os.id)}>
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm font-bold text-primary">{os.id.slice(0, 8)}</span>
+                <span className="ml-2 text-[10px] text-muted-foreground">{new Date(os.data_entrada).toLocaleDateString("pt-BR")}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={(e) => { e.stopPropagation(); openEdit(os); }} className="rounded p-1 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            <p className="text-sm font-medium">{(os as any).clientes?.nome}</p>
+            <p className="text-xs text-muted-foreground">{(os as any).veiculos?.marca} {(os as any).veiculos?.modelo}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <span className={statusBadge(os.status)}>{os.status}</span>
+                <span className={finBadge(os.finStatus)}>{os.finStatus}</span>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold">R$ {Number(os.total).toLocaleString("pt-BR")}</p>
+                {os.totalPago > 0 && os.totalPago < Number(os.total) && <p className="text-[10px] text-muted-foreground">Pago: R$ {os.totalPago.toLocaleString("pt-BR")}</p>}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <NovaOSModal
