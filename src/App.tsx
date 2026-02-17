@@ -14,6 +14,7 @@ import ServiceOrders from "./pages/ServiceOrders";
 import Financial from "./pages/Financial";
 import Pendencies from "./pages/Pendencies";
 import Reports from "./pages/Reports";
+import Estoque from "./pages/Estoque";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
@@ -69,6 +70,7 @@ const App = () => {
               <Route path="/clientes" element={<Clients />} />
               <Route path="/agendamentos" element={<Schedule />} />
               <Route path="/ordens-servico" element={<ServiceOrders />} />
+              <Route path="/estoque" element={<Estoque />} />
               <Route path="/financeiro" element={<Financial />} />
               <Route path="/pendencias" element={<Pendencies />} />
               <Route path="/relatorios" element={<Reports />} />

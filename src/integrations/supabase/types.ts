@@ -140,6 +140,83 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_pecas: {
+        Row: {
+          codigo: string
+          created_at: string
+          fornecedor: string | null
+          id: string
+          nome: string
+          preco_custo: number
+          preco_venda: number
+          quantidade: number
+          quantidade_minima: number
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          fornecedor?: string | null
+          id?: string
+          nome: string
+          preco_custo?: number
+          preco_venda?: number
+          quantidade?: number
+          quantidade_minima?: number
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          fornecedor?: string | null
+          id?: string
+          nome?: string
+          preco_custo?: number
+          preco_venda?: number
+          quantidade?: number
+          quantidade_minima?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      historico_compras: {
+        Row: {
+          created_at: string
+          data_compra: string
+          fornecedor: string | null
+          id: string
+          peca_id: string
+          quantidade: number
+          valor_pago: number
+        }
+        Insert: {
+          created_at?: string
+          data_compra?: string
+          fornecedor?: string | null
+          id?: string
+          peca_id: string
+          quantidade?: number
+          valor_pago?: number
+        }
+        Update: {
+          created_at?: string
+          data_compra?: string
+          fornecedor?: string | null
+          id?: string
+          peca_id?: string
+          quantidade?: number
+          valor_pago?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_compras_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       logs_atendimento: {
         Row: {
           canal: string
