@@ -7,7 +7,7 @@ import { useOrdensServico, useMutateOS, useClientes, usePagamentos, useMutatePag
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { MoneyInput, parseBRL } from "@/components/MoneyInput";
-import { NovaOSModal, type NovaOSForm, type LineItem } from "@/components/NovaOSModal";
+import { NovaOSModal, type NovaOSForm, type LineItem, type PecaItem } from "@/components/NovaOSModal";
 import { supabase } from "@/integrations/supabase/client";
 
 const finBadge = (s: string) => {
@@ -52,7 +52,7 @@ const ServiceOrders = () => {
   const openNew = () => { setEditOS(null); setShowForm(true); };
   const openEdit = (os: any) => { setEditOS(os); setShowForm(true); };
 
-  const handleSave = async (form: NovaOSForm, servicos: LineItem[], pecas: LineItem[]) => {
+  const handleSave = async (form: NovaOSForm, servicos: LineItem[], pecas: PecaItem[]) => {
     if (!form.cliente_id) { toast.error("Selecione um cliente"); return; }
 
     const totalServicos = servicos.reduce((s, i) => s + parseBRL(i.valor), 0);
@@ -102,7 +102,13 @@ const ServiceOrders = () => {
       }
       if (pecas.length > 0) {
         const { error } = await supabase.from("pecas_os").insert(
-          pecas.map((p) => ({ ordem_servico_id: osId, descricao: p.descricao, valor: parseBRL(p.valor) }))
+          pecas.map((p) => ({
+            ordem_servico_id: osId,
+            descricao: p.descricao,
+            valor: parseBRL(p.valor),
+            peca_id: p.peca_id,
+            quantidade: p.quantidade,
+          }))
         );
         if (error) throw error;
       }

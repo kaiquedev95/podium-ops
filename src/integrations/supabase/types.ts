@@ -387,6 +387,8 @@ export type Database = {
           descricao: string
           id: string
           ordem_servico_id: string
+          peca_id: string | null
+          quantidade: number
           valor: number
         }
         Insert: {
@@ -394,6 +396,8 @@ export type Database = {
           descricao: string
           id?: string
           ordem_servico_id: string
+          peca_id?: string | null
+          quantidade?: number
           valor?: number
         }
         Update: {
@@ -401,6 +405,8 @@ export type Database = {
           descricao?: string
           id?: string
           ordem_servico_id?: string
+          peca_id?: string | null
+          quantidade?: number
           valor?: number
         }
         Relationships: [
@@ -409,6 +415,13 @@ export type Database = {
             columns: ["ordem_servico_id"]
             isOneToOne: false
             referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pecas_os_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_pecas"
             referencedColumns: ["id"]
           },
         ]

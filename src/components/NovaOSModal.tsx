@@ -1,18 +1,27 @@
 import { useState } from "react";
-import { Plus, Wrench, Package, Trash2 } from "lucide-react";
+import { Plus, Wrench, Package, Trash2, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MoneyInput, parseBRL } from "@/components/MoneyInput";
-import { useVeiculos } from "@/hooks/useSupabase";
+import { useVeiculos, useEstoquePecas } from "@/hooks/useSupabase";
 import { format } from "date-fns";
 
 interface LineItem {
   id: string;
   descricao: string;
   valor: string;
+}
+
+interface PecaItem {
+  id: string;
+  peca_id: string;
+  descricao: string;
+  quantidade: number;
+  preco_unitario: number;
+  valor: string; // total formatted
 }
 
 interface NovaOSForm {
@@ -51,7 +60,7 @@ interface NovaOSModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clientes: any[];
-  onSave: (form: NovaOSForm, servicos: LineItem[], pecas: LineItem[]) => void;
+  onSave: (form: NovaOSForm, servicos: LineItem[], pecas: PecaItem[]) => void;
   isPending: boolean;
   editData?: any;
 }
@@ -60,11 +69,13 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
   const [tab, setTab] = useState("info");
   const [form, setForm] = useState<NovaOSForm>(editData ? mapEditToForm(editData) : { ...emptyForm });
   const [servicos, setServicos] = useState<LineItem[]>(editData?.servicos || []);
-  const [pecas, setPecas] = useState<LineItem[]>(editData?.pecas || []);
+  const [pecas, setPecas] = useState<PecaItem[]>(editData?.pecas || []);
   const [newServico, setNewServico] = useState({ descricao: "", valor: "" });
-  const [newPeca, setNewPeca] = useState({ descricao: "", valor: "" });
+  const [newPeca, setNewPeca] = useState({ peca_id: "", quantidade: 1 });
+  const [pecaError, setPecaError] = useState("");
 
   const { data: veiculos } = useVeiculos(form.cliente_id || undefined);
+  const { data: estoque } = useEstoquePecas();
 
   const totalServicos = servicos.reduce((s, i) => s + parseBRL(i.valor), 0);
   const totalPecas = pecas.reduce((s, i) => s + parseBRL(i.valor), 0);
@@ -76,14 +87,42 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
     setNewServico({ descricao: "", valor: "" });
   };
 
+  // Calculate already-used quantities for each peca in this OS
+  const usedQuantities = pecas.reduce((acc, p) => {
+    acc[p.peca_id] = (acc[p.peca_id] || 0) + p.quantidade;
+    return acc;
+  }, {} as Record<string, number>);
+
   const addPeca = () => {
-    if (!newPeca.descricao) return;
-    setPecas([...pecas, { id: crypto.randomUUID(), ...newPeca }]);
-    setNewPeca({ descricao: "", valor: "" });
+    setPecaError("");
+    if (!newPeca.peca_id) { setPecaError("Selecione uma peça"); return; }
+    if (newPeca.quantidade < 1) { setPecaError("Quantidade mínima é 1"); return; }
+
+    const peca = estoque?.find((p) => p.id === newPeca.peca_id);
+    if (!peca) return;
+
+    const alreadyUsed = usedQuantities[peca.id] || 0;
+    const available = peca.quantidade - alreadyUsed;
+
+    if (newPeca.quantidade > available) {
+      setPecaError(`Estoque insuficiente! Disponível: ${available}`);
+      return;
+    }
+
+    const totalValue = newPeca.quantidade * Number(peca.preco_venda);
+    setPecas([...pecas, {
+      id: crypto.randomUUID(),
+      peca_id: peca.id,
+      descricao: peca.nome,
+      quantidade: newPeca.quantidade,
+      preco_unitario: Number(peca.preco_venda),
+      valor: totalValue.toFixed(2).replace(".", ","),
+    }]);
+    setNewPeca({ peca_id: "", quantidade: 1 });
   };
 
-  const removeItem = (list: LineItem[], setList: (l: LineItem[]) => void, id: string) => {
-    setList(list.filter((i) => i.id !== id));
+  const removeItem = (list: any[], setList: (l: any[]) => void, id: string) => {
+    setList(list.filter((i: any) => i.id !== id));
   };
 
   const handleSubmit = () => {
@@ -91,18 +130,19 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
     onSave(form, servicos, pecas);
   };
 
-  // Reset form when modal opens
   const handleOpenChange = (v: boolean) => {
     if (v && !editData) {
       setForm({ ...emptyForm });
       setServicos([]);
       setPecas([]);
       setTab("info");
+      setPecaError("");
     }
     onOpenChange(v);
   };
 
-  const f = (v: string) => `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  const selectedPeca = estoque?.find((p) => p.id === newPeca.peca_id);
+  const selectedAvailable = selectedPeca ? selectedPeca.quantidade - (usedQuantities[selectedPeca.id] || 0) : 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -239,27 +279,73 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
 
             {/* ── ABA PEÇAS ── */}
             <TabsContent value="pecas" className="space-y-4 m-0">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                <div className="flex-1 space-y-1">
-                  <label className="text-sm font-medium">Descrição da peça</label>
-                  <Input placeholder="Ex: Filtro de óleo" value={newPeca.descricao} onChange={(e) => setNewPeca({ ...newPeca, descricao: e.target.value })} />
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Selecionar Peça do Estoque</label>
+                  <select
+                    className="w-full rounded-lg border border-input bg-background p-2 text-sm"
+                    value={newPeca.peca_id}
+                    onChange={(e) => { setNewPeca({ ...newPeca, peca_id: e.target.value }); setPecaError(""); }}
+                  >
+                    <option value="">Selecione uma peça...</option>
+                    {(estoque || []).map((p) => {
+                      const available = p.quantidade - (usedQuantities[p.id] || 0);
+                      return (
+                        <option key={p.id} value={p.id} disabled={available <= 0}>
+                          {p.nome} — Cód: {p.codigo} — Disp: {available} un
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
+
+                {selectedPeca && (
+                  <div className="rounded-lg border border-border bg-secondary/50 p-3 text-sm space-y-1">
+                    <p><strong>{selectedPeca.nome}</strong> (Cód: {selectedPeca.codigo})</p>
+                    <p className="text-muted-foreground">
+                      Preço de venda: R$ {Number(selectedPeca.preco_venda).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {" · "}Disponível: <strong>{selectedAvailable}</strong> un
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex items-end gap-2">
-                  <div className="flex-1 sm:w-36 space-y-1">
-                    <label className="text-sm font-medium">Valor R$</label>
-                    <MoneyInput value={newPeca.valor} onChange={(v) => setNewPeca({ ...newPeca, valor: v })} />
+                  <div className="w-28 space-y-1">
+                    <label className="text-sm font-medium">Qtd</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={selectedAvailable || 999}
+                      value={newPeca.quantidade}
+                      onChange={(e) => { setNewPeca({ ...newPeca, quantidade: parseInt(e.target.value) || 1 }); setPecaError(""); }}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-sm font-medium">Valor Total</label>
+                    <Input
+                      readOnly
+                      value={selectedPeca ? `R$ ${(newPeca.quantidade * Number(selectedPeca.preco_venda)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "R$ 0,00"}
+                      className="bg-muted"
+                    />
                   </div>
                   <Button size="icon" onClick={addPeca} className="shrink-0">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {pecaError && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>{pecaError}</span>
+                  </div>
+                )}
               </div>
 
               {pecas.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border p-8 text-center">
                   <Package className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">Nenhuma peça adicionada</p>
-                  <p className="text-xs text-muted-foreground">Use o botão "+" acima para adicionar</p>
+                  <p className="text-xs text-muted-foreground">Selecione peças do estoque acima</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -267,7 +353,10 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
                     <div key={p.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
                       <div>
                         <p className="text-sm font-medium">{p.descricao}</p>
-                        <p className="text-xs text-muted-foreground">R$ {parseBRL(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.quantidade} × R$ {p.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          {" = "}R$ {parseBRL(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
                       </div>
                       <button onClick={() => removeItem(pecas, setPecas, p.id)} className="rounded p-1 text-muted-foreground hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
@@ -306,7 +395,6 @@ export const NovaOSModal = ({ open, onOpenChange, clientes, onSave, isPending, e
                 </div>
               </div>
 
-              {/* Resumo do Orçamento */}
               <div className="rounded-xl border border-border bg-secondary/50 p-5 space-y-3">
                 <h3 className="font-semibold text-sm">Resumo do Orçamento</h3>
                 <div className="space-y-2 text-sm">
@@ -368,4 +456,4 @@ function mapEditToForm(os: any): NovaOSForm {
   };
 }
 
-export type { NovaOSForm, LineItem };
+export type { NovaOSForm, LineItem, PecaItem };
