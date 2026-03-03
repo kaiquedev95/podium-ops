@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Search, Plus, Phone, ChevronRight, Car, ArrowLeft, Trash2, Pencil, MessageCircle } from "lucide-react";
+import { Search, Plus, Phone, ChevronRight, Car, ArrowLeft, Trash2, Pencil, MessageCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useClientes, useMutateCliente, useVeiculos, useMutateVeiculo, useLogsAtendimento, useMutateLog } from "@/hooks/useSupabase";
+import { ClientHistory } from "@/components/ClientHistory";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -343,7 +344,18 @@ const ClientDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
             </div>
           ))}
           {(!logs || logs.length === 0) && <p className="px-5 py-4 text-sm text-muted-foreground">Nenhum registro</p>}
+      </div>
+
+      {/* Histórico do Cliente */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+          <FileText className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold">Histórico Completo</h2>
         </div>
+        <div className="p-5">
+          <ClientHistory clienteId={id} />
+        </div>
+      </div>
       </div>
 
       {/* Vehicle Dialog */}
