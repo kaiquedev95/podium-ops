@@ -254,8 +254,6 @@ const OSDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
 
   const osData = os?.find((o) => o.id === id);
   const { data: clienteData } = useCliente(osData?.cliente_id);
-
-  const osData = os?.find((o) => o.id === id);
   if (isLoading) return <p>Carregando...</p>;
   if (!osData) return <p>OS não encontrada</p>;
 
