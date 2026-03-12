@@ -353,6 +353,14 @@ const OSDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <NotaFiscalModal
+        open={showNF}
+        onOpenChange={setShowNF}
+        osId={id}
+        osData={osData}
+        clienteData={clienteData}
+      />
     </div>
   );
 };
