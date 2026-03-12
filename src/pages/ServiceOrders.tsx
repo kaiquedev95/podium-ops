@@ -287,7 +287,14 @@ const OSDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       </div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">OS {id.slice(0, 8)}</h1>
-        <span className={statusBadge(osData.status)}>{osData.status}</span>
+        <div className="flex items-center gap-2">
+          {osData.status === "concluída" && (
+            <Button size="sm" variant="outline" onClick={() => setShowNF(true)} className="gap-2">
+              <FileText className="h-4 w-4" /> Emitir Nota Fiscal
+            </Button>
+          )}
+          <span className={statusBadge(osData.status)}>{osData.status}</span>
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 space-y-2">
