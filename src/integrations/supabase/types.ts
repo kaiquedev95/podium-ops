@@ -268,6 +268,93 @@ export type Database = {
           },
         ]
       }
+      notas_fiscais: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_emissao: string
+          desconto: number
+          icms_percentual: number
+          icms_valor: number
+          id: string
+          iss_percentual: number
+          iss_valor: number
+          itens_pecas: Json
+          itens_servicos: Json
+          numero_nf: number
+          observacoes: string | null
+          oficina_cnpj: string
+          oficina_endereco: string
+          oficina_inscricao_estadual: string | null
+          oficina_nome: string
+          ordem_servico_id: string
+          valor_pecas: number
+          valor_servicos: number
+          valor_total: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_emissao?: string
+          desconto?: number
+          icms_percentual?: number
+          icms_valor?: number
+          id?: string
+          iss_percentual?: number
+          iss_valor?: number
+          itens_pecas?: Json
+          itens_servicos?: Json
+          numero_nf?: number
+          observacoes?: string | null
+          oficina_cnpj?: string
+          oficina_endereco?: string
+          oficina_inscricao_estadual?: string | null
+          oficina_nome?: string
+          ordem_servico_id: string
+          valor_pecas?: number
+          valor_servicos?: number
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_emissao?: string
+          desconto?: number
+          icms_percentual?: number
+          icms_valor?: number
+          id?: string
+          iss_percentual?: number
+          iss_valor?: number
+          itens_pecas?: Json
+          itens_servicos?: Json
+          numero_nf?: number
+          observacoes?: string | null
+          oficina_cnpj?: string
+          oficina_endereco?: string
+          oficina_inscricao_estadual?: string | null
+          oficina_nome?: string
+          ordem_servico_id?: string
+          valor_pecas?: number
+          valor_servicos?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordens_servico: {
         Row: {
           cliente_id: string
