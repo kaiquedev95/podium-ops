@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Plus, Search, ChevronRight, ArrowLeft, CreditCard, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, ChevronRight, ArrowLeft, CreditCard, Pencil, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useOrdensServico, useMutateOS, useClientes, usePagamentos, useMutatePagamento, calcFinStatus } from "@/hooks/useSupabase";
+import { useOrdensServico, useMutateOS, useClientes, useCliente, usePagamentos, useMutatePagamento, calcFinStatus } from "@/hooks/useSupabase";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { MoneyInput, parseBRL } from "@/components/MoneyInput";
 import { NovaOSModal, type NovaOSForm, type LineItem, type PecaItem } from "@/components/NovaOSModal";
 import { supabase } from "@/integrations/supabase/client";
+import { NotaFiscalModal } from "@/components/NotaFiscalModal";
 
 const finBadge = (s: string) => {
   const map: Record<string, string> = { aberto: "badge-open", parcial: "badge-partial", pago: "badge-paid", atrasado: "badge-overdue" };
