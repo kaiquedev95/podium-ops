@@ -249,7 +249,11 @@ const OSDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
   const { create: createPag, remove: removePag } = useMutatePagamento();
   const { update: updateOS } = useMutateOS();
   const [showPay, setShowPay] = useState(false);
+  const [showNF, setShowNF] = useState(false);
   const [payForm, setPayForm] = useState({ valor: "", forma_pagamento: "PIX", observacoes: "" });
+
+  const osData = os?.find((o) => o.id === id);
+  const { data: clienteData } = useCliente(osData?.cliente_id);
 
   const osData = os?.find((o) => o.id === id);
   if (isLoading) return <p>Carregando...</p>;
