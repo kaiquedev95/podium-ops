@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Plus, Search, ChevronRight, ArrowLeft, CreditCard, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, ChevronRight, ArrowLeft, CreditCard, Pencil, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useOrdensServico, useMutateOS, useClientes, usePagamentos, useMutatePagamento, calcFinStatus } from "@/hooks/useSupabase";
+import { useOrdensServico, useMutateOS, useClientes, useCliente, usePagamentos, useMutatePagamento, calcFinStatus } from "@/hooks/useSupabase";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { MoneyInput, parseBRL } from "@/components/MoneyInput";
 import { NovaOSModal, type NovaOSForm, type LineItem, type PecaItem } from "@/components/NovaOSModal";
 import { supabase } from "@/integrations/supabase/client";
+import { NotaFiscalModal } from "@/components/NotaFiscalModal";
 
 const finBadge = (s: string) => {
   const map: Record<string, string> = { aberto: "badge-open", parcial: "badge-partial", pago: "badge-paid", atrasado: "badge-overdue" };
@@ -248,9 +249,11 @@ const OSDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
   const { create: createPag, remove: removePag } = useMutatePagamento();
   const { update: updateOS } = useMutateOS();
   const [showPay, setShowPay] = useState(false);
+  const [showNF, setShowNF] = useState(false);
   const [payForm, setPayForm] = useState({ valor: "", forma_pagamento: "PIX", observacoes: "" });
 
   const osData = os?.find((o) => o.id === id);
+  const { data: clienteData } = useCliente(osData?.cliente_id);
   if (isLoading) return <p>Carregando...</p>;
   if (!osData) return <p>OS não encontrada</p>;
 
@@ -284,7 +287,14 @@ const OSDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       </div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">OS {id.slice(0, 8)}</h1>
-        <span className={statusBadge(osData.status)}>{osData.status}</span>
+        <div className="flex items-center gap-2">
+          {osData.status === "concluída" && (
+            <Button size="sm" variant="outline" onClick={() => setShowNF(true)} className="gap-2">
+              <FileText className="h-4 w-4" /> Emitir Nota Fiscal
+            </Button>
+          )}
+          <span className={statusBadge(osData.status)}>{osData.status}</span>
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 space-y-2">
@@ -343,6 +353,14 @@ const OSDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <NotaFiscalModal
+        open={showNF}
+        onOpenChange={setShowNF}
+        osId={id}
+        osData={osData}
+        clienteData={clienteData}
+      />
     </div>
   );
 };
