@@ -2,6 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
+// Helper to get current user id for owner_id
+const getOwnerId = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Usuário não autenticado");
+  return user.id;
+};
+
 // ─── Clientes ───
 export const useClientes = () =>
   useQuery({
@@ -28,7 +35,8 @@ export const useMutateCliente = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (c: TablesInsert<"clientes">) => {
-      const { data, error } = await supabase.from("clientes").insert(c).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("clientes").insert({ ...c, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -69,7 +77,8 @@ export const useMutateVeiculo = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (v: TablesInsert<"veiculos">) => {
-      const { data, error } = await supabase.from("veiculos").insert(v).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("veiculos").insert({ ...v, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -111,7 +120,8 @@ export const useMutateAgendamento = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (a: TablesInsert<"agendamentos">) => {
-      const { data, error } = await supabase.from("agendamentos").insert(a).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("agendamentos").insert({ ...a, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -168,7 +178,8 @@ export const useMutateOS = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (os: TablesInsert<"ordens_servico">) => {
-      const { data, error } = await supabase.from("ordens_servico").insert(os).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("ordens_servico").insert({ ...os, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -205,7 +216,8 @@ export const useMutatePagamento = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (p: TablesInsert<"pagamentos">) => {
-      const { data, error } = await supabase.from("pagamentos").insert(p).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("pagamentos").insert({ ...p, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -258,7 +270,8 @@ export const useMutateLog = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (log: TablesInsert<"logs_atendimento">) => {
-      const { data, error } = await supabase.from("logs_atendimento").insert(log).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("logs_atendimento").insert({ ...log, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -307,7 +320,8 @@ export const useMutatePendencia = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (p: TablesInsert<"pendencias">) => {
-      const { data, error } = await supabase.from("pendencias").insert(p).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("pendencias").insert({ ...p, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -346,7 +360,8 @@ export const useMutateDespesa = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (d: TablesInsert<"despesas">) => {
-      const { data, error } = await supabase.from("despesas").insert(d).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("despesas").insert({ ...d, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -385,7 +400,8 @@ export const useMutateEstoquePeca = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (p: any) => {
-      const { data, error } = await supabase.from("estoque_pecas").insert(p).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("estoque_pecas").insert({ ...p, owner_id }).select().single();
       if (error) throw error;
       return data;
     },
@@ -424,7 +440,8 @@ export const useMutateHistoricoCompra = () => {
   const qc = useQueryClient();
   const create = useMutation({
     mutationFn: async (c: any) => {
-      const { data, error } = await supabase.from("historico_compras").insert(c).select().single();
+      const owner_id = await getOwnerId();
+      const { data, error } = await supabase.from("historico_compras").insert({ ...c, owner_id }).select().single();
       if (error) throw error;
       return data;
     },

@@ -21,6 +21,7 @@ export type Database = {
           data_hora: string
           id: string
           observacoes: string | null
+          owner_id: string | null
           servico_resumo: string | null
           status: string
           veiculo_id: string | null
@@ -31,6 +32,7 @@ export type Database = {
           data_hora: string
           id?: string
           observacoes?: string | null
+          owner_id?: string | null
           servico_resumo?: string | null
           status?: string
           veiculo_id?: string | null
@@ -41,6 +43,7 @@ export type Database = {
           data_hora?: string
           id?: string
           observacoes?: string | null
+          owner_id?: string | null
           servico_resumo?: string | null
           status?: string
           veiculo_id?: string | null
@@ -76,6 +79,7 @@ export type Database = {
           id: string
           nome: string
           numero: string | null
+          owner_id: string | null
           telefone: string | null
           whatsapp: string | null
         }
@@ -92,6 +96,7 @@ export type Database = {
           id?: string
           nome: string
           numero?: string | null
+          owner_id?: string | null
           telefone?: string | null
           whatsapp?: string | null
         }
@@ -108,6 +113,7 @@ export type Database = {
           id?: string
           nome?: string
           numero?: string | null
+          owner_id?: string | null
           telefone?: string | null
           whatsapp?: string | null
         }
@@ -120,6 +126,7 @@ export type Database = {
           data: string
           descricao: string
           id: string
+          owner_id: string | null
           valor: number
         }
         Insert: {
@@ -128,6 +135,7 @@ export type Database = {
           data?: string
           descricao: string
           id?: string
+          owner_id?: string | null
           valor: number
         }
         Update: {
@@ -136,6 +144,7 @@ export type Database = {
           data?: string
           descricao?: string
           id?: string
+          owner_id?: string | null
           valor?: number
         }
         Relationships: []
@@ -147,6 +156,7 @@ export type Database = {
           fornecedor: string | null
           id: string
           nome: string
+          owner_id: string | null
           preco_custo: number
           preco_venda: number
           quantidade: number
@@ -159,6 +169,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           nome: string
+          owner_id?: string | null
           preco_custo?: number
           preco_venda?: number
           quantidade?: number
@@ -171,6 +182,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           nome?: string
+          owner_id?: string | null
           preco_custo?: number
           preco_venda?: number
           quantidade?: number
@@ -185,6 +197,7 @@ export type Database = {
           data_compra: string
           fornecedor: string | null
           id: string
+          owner_id: string | null
           peca_id: string
           quantidade: number
           valor_pago: number
@@ -194,6 +207,7 @@ export type Database = {
           data_compra?: string
           fornecedor?: string | null
           id?: string
+          owner_id?: string | null
           peca_id: string
           quantidade?: number
           valor_pago?: number
@@ -203,6 +217,7 @@ export type Database = {
           data_compra?: string
           fornecedor?: string | null
           id?: string
+          owner_id?: string | null
           peca_id?: string
           quantidade?: number
           valor_pago?: number
@@ -227,6 +242,7 @@ export type Database = {
           descricao: string
           id: string
           ordem_servico_id: string | null
+          owner_id: string | null
           usuario_responsavel: string
         }
         Insert: {
@@ -238,6 +254,7 @@ export type Database = {
           descricao: string
           id?: string
           ordem_servico_id?: string | null
+          owner_id?: string | null
           usuario_responsavel?: string
         }
         Update: {
@@ -249,6 +266,7 @@ export type Database = {
           descricao?: string
           id?: string
           ordem_servico_id?: string | null
+          owner_id?: string | null
           usuario_responsavel?: string
         }
         Relationships: [
@@ -288,6 +306,7 @@ export type Database = {
           oficina_inscricao_estadual: string | null
           oficina_nome: string
           ordem_servico_id: string
+          owner_id: string | null
           valor_pecas: number
           valor_servicos: number
           valor_total: number
@@ -311,6 +330,7 @@ export type Database = {
           oficina_inscricao_estadual?: string | null
           oficina_nome?: string
           ordem_servico_id: string
+          owner_id?: string | null
           valor_pecas?: number
           valor_servicos?: number
           valor_total?: number
@@ -334,6 +354,7 @@ export type Database = {
           oficina_inscricao_estadual?: string | null
           oficina_nome?: string
           ordem_servico_id?: string
+          owner_id?: string | null
           valor_pecas?: number
           valor_servicos?: number
           valor_total?: number
@@ -368,6 +389,7 @@ export type Database = {
           km_entrada: number | null
           o_que_foi_feito: string | null
           observacoes: string | null
+          owner_id: string | null
           pecas_texto: string | null
           reclamacao_cliente: string | null
           status: string
@@ -387,6 +409,7 @@ export type Database = {
           km_entrada?: number | null
           o_que_foi_feito?: string | null
           observacoes?: string | null
+          owner_id?: string | null
           pecas_texto?: string | null
           reclamacao_cliente?: string | null
           status?: string
@@ -406,6 +429,7 @@ export type Database = {
           km_entrada?: number | null
           o_que_foi_feito?: string | null
           observacoes?: string | null
+          owner_id?: string | null
           pecas_texto?: string | null
           reclamacao_cliente?: string | null
           status?: string
@@ -438,6 +462,7 @@ export type Database = {
           id: string
           observacoes: string | null
           ordem_servico_id: string
+          owner_id: string | null
           valor: number
         }
         Insert: {
@@ -447,6 +472,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           ordem_servico_id: string
+          owner_id?: string | null
           valor: number
         }
         Update: {
@@ -456,6 +482,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           ordem_servico_id?: string
+          owner_id?: string | null
           valor?: number
         }
         Relationships: [
@@ -474,6 +501,7 @@ export type Database = {
           descricao: string
           id: string
           ordem_servico_id: string
+          owner_id: string | null
           peca_id: string | null
           quantidade: number
           valor: number
@@ -483,6 +511,7 @@ export type Database = {
           descricao: string
           id?: string
           ordem_servico_id: string
+          owner_id?: string | null
           peca_id?: string | null
           quantidade?: number
           valor?: number
@@ -492,6 +521,7 @@ export type Database = {
           descricao?: string
           id?: string
           ordem_servico_id?: string
+          owner_id?: string | null
           peca_id?: string | null
           quantidade?: number
           valor?: number
@@ -522,6 +552,7 @@ export type Database = {
           id: string
           log_atendimento_id: string | null
           ordem_servico_id: string | null
+          owner_id: string | null
           responsavel: string
           status: string
         }
@@ -533,6 +564,7 @@ export type Database = {
           id?: string
           log_atendimento_id?: string | null
           ordem_servico_id?: string | null
+          owner_id?: string | null
           responsavel?: string
           status?: string
         }
@@ -544,6 +576,7 @@ export type Database = {
           id?: string
           log_atendimento_id?: string | null
           ordem_servico_id?: string | null
+          owner_id?: string | null
           responsavel?: string
           status?: string
         }
@@ -577,6 +610,7 @@ export type Database = {
           descricao: string
           id: string
           ordem_servico_id: string
+          owner_id: string | null
           valor: number
         }
         Insert: {
@@ -584,6 +618,7 @@ export type Database = {
           descricao: string
           id?: string
           ordem_servico_id: string
+          owner_id?: string | null
           valor?: number
         }
         Update: {
@@ -591,6 +626,7 @@ export type Database = {
           descricao?: string
           id?: string
           ordem_servico_id?: string
+          owner_id?: string | null
           valor?: number
         }
         Relationships: [
@@ -613,6 +649,7 @@ export type Database = {
           modelo: string | null
           motor: string | null
           observacoes: string | null
+          owner_id: string | null
           placa: string | null
         }
         Insert: {
@@ -624,6 +661,7 @@ export type Database = {
           modelo?: string | null
           motor?: string | null
           observacoes?: string | null
+          owner_id?: string | null
           placa?: string | null
         }
         Update: {
@@ -635,6 +673,7 @@ export type Database = {
           modelo?: string | null
           motor?: string | null
           observacoes?: string | null
+          owner_id?: string | null
           placa?: string | null
         }
         Relationships: [

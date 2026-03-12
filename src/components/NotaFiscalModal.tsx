@@ -100,6 +100,9 @@ export const NotaFiscalModal = ({ open, onOpenChange, osId, osData, clienteData 
   const handleSave = async () => {
     setSaving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Usuário não autenticado"); return; }
+
       const payload = {
         ordem_servico_id: osId,
         cliente_id: osData.cliente_id,
@@ -126,7 +129,7 @@ export const NotaFiscalModal = ({ open, onOpenChange, osId, osData, clienteData 
         if (error) throw error;
         nf = data;
       } else {
-        const { data, error } = await supabase.from("notas_fiscais").insert(payload).select().single();
+        const { data, error } = await supabase.from("notas_fiscais").insert({ ...payload, owner_id: user.id }).select().single();
         if (error) throw error;
         nf = data;
       }

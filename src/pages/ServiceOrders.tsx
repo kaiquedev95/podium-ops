@@ -80,6 +80,10 @@ const ServiceOrders = () => {
     };
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Usuário não autenticado"); return; }
+      const owner_id = user.id;
+
       let osId: string;
       if (editOS) {
         const { data, error } = await supabase.from("ordens_servico").update(payload).eq("id", editOS.id).select().single();
@@ -89,7 +93,7 @@ const ServiceOrders = () => {
         await supabase.from("servicos_os").delete().eq("ordem_servico_id", osId);
         await supabase.from("pecas_os").delete().eq("ordem_servico_id", osId);
       } else {
-        const { data, error } = await supabase.from("ordens_servico").insert(payload).select().single();
+        const { data, error } = await supabase.from("ordens_servico").insert({ ...payload, owner_id }).select().single();
         if (error) throw error;
         osId = data.id;
       }
@@ -97,7 +101,7 @@ const ServiceOrders = () => {
       // Insert line items
       if (servicos.length > 0) {
         const { error } = await supabase.from("servicos_os").insert(
-          servicos.map((s) => ({ ordem_servico_id: osId, descricao: s.descricao, valor: parseBRL(s.valor) }))
+          servicos.map((s) => ({ ordem_servico_id: osId, descricao: s.descricao, valor: parseBRL(s.valor), owner_id }))
         );
         if (error) throw error;
       }
@@ -109,6 +113,7 @@ const ServiceOrders = () => {
             valor: parseBRL(p.valor),
             peca_id: p.peca_id,
             quantidade: p.quantidade,
+            owner_id,
           }))
         );
         if (error) throw error;
@@ -121,6 +126,7 @@ const ServiceOrders = () => {
           ordem_servico_id: osId,
           valor: valorPago,
           forma_pagamento: form.forma_pagamento,
+          owner_id,
         });
       }
 
